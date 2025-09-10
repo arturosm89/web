@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incidentes GUM en el Mapa (Modificado)</title>
+    
+    <!-- Dependencias -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.css">
+    <script type="text/javascript" charset="utf8" src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    
+    <!-- Estilos CSS -->
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --background-color: #f4f4f9;
+            --container-bg: #ffffff;
+            --text-color: #333;
+            --header-bg: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1001;
+        }
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        main {
+            padding-bottom: 2rem;
+        }
+        #mapa {
+            height: 65vh;
+            width: 100%;
+        }
+        #map-info {
+            background-color: #333;
+            color: white;
+            padding: 8px 15px;
+            font-size: 0.9em;
+            text-align: center;
+            font-family: monospace;
+        }
+        #map-info span {
+            margin: 0 10px;
+        }
+        #tabla-container {
+            padding: 1.5rem;
+            background-color: var(--background-color);
+        }
+        #tabla-wrapper {
+            background-color: var(--container-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            width: 100%;
+            box-sizing: border-box;
+        }
+        h2 {
+            margin: 0 0 1rem 0;
+            font-size: 1.5rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+        
+        /* MODIFICADO: Estilos para la caja de detalles */
+        #info-detalle {
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.8;
+            color: #495057;
+            font-size: 0.95em;
+            transition: background-color 0.3s;
+        }
+
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        #loader, #error-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 2000;
+            text-align: center;
+        }
+        #error-message { color: #d9534f; display: none; }
+
+        /* --- ESTILOS PARA LA TABLA (DataTables) --- */
+        #datosTabla {
+            width: 100% !important;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        #datosTabla thead th {
+            background-color: var(--header-bg);
+            color: var(--text-color);
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 15px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        #datosTabla tbody tr {
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        #datosTabla tbody tr:nth-child(even) {
+            background-color: var(--header-bg);
+        }
+        #datosTabla tbody tr:hover, #datosTabla tbody tr.selected {
+            background-color: #e2eef9;
+            font-weight: 500;
+        }
+        #datosTabla tbody tr:last-child {
+            border-bottom: none;
+        }
+        #datosTabla td {
+            padding: 10px 15px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Mapa de Incidentes GUM</h1>
+    </header>
+
+    <main>
+        <div id="mapa"></div>
+        <div id="map-info">Cargando info del mapa...</div>
+
+        <div id="tabla-container">
+            <div id="tabla-wrapper">
+                <h2>Datos de Incidentes</h2>
+                <div id="info-detalle">Seleccione un incidente en el mapa o en la tabla para ver los detalles.</div>
+                
+                <table id="datosTabla" class="display nowrap" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>ID Google</th><th>ID</th><th>Fecha y Hora</th><th>Ubicación</th>
+                            <th>Tipo</th><th>Subtipo</th><th>Latitud</th>
+                            <th>Longitud</th><th>Altitud</th><th>IMG 1</th><th>IMG 2</th>
+                            <th>IMG 3</th><th>IMG 4</th><th>Dispositivo</th><th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+    
+    <div id="loader">Cargando datos, por favor espere...</div>
+    <div id="error-message"></div>
+
+    <footer>
+        <p>Desarrollado con datos de la API de Incidentes GUM.</p>
+    </footer>
+
+    <script>
+        // --- CONFIGURACIÓN ---
+        const API_URL = 'http://due.gw.lt:9091/IncidentesGumCSV/DescargarJSON';
+        const GOOGLE_IMG_URL_BASE = 'https://lh3.googleusercontent.com/d/';
+
+        // --- INICIALIZACIÓN DE ELEMENTOS ---
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('error-message');
+        const mapInfo = document.getElementById('map-info');
+        const infoDetalle = document.getElementById('info-detalle');
+        const map = L.map('mapa').setView([-30.98493, -64.09759], 14);
+        
+        const markers = L.markerClusterGroup();
+        let allMarkers = {};
+        let tabla;
+
+        // Capas de mapa
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' });
+        const googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains:['mt0','mt1','mt2','mt3'], attribution: 'Map data © Google Maps' });
+        
+        osm.addTo(map);
+        L.control.layers({ "OpenStreetMap": osm, "Google Satellite": googleSat }).addTo(map);
+        map.addLayer(markers);
+
+        // --- FUNCIONES ---
+        function mostrarError(mensaje) {
+            loader.style.display = 'none';
+            errorMessage.textContent = mensaje;
+            errorMessage.style.display = 'block';
+        }
+
+        function updateMapInfo() {
+            const center = map.getCenter();
+            const zoom = map.getZoom();
+            mapInfo.innerHTML = `<span>Lat: ${center.lat.toFixed(5)}</span> | <span>Lon: ${center.lng.toFixed(5)}</span> | <span>Zoom: ${zoom}</span>`;
+        }
+
+        function actualizarMarcadores(data) {
+            markers.clearLayers();
+            const markersToAdd = data.map(incidente => allMarkers[incidente.id]).filter(marker => marker);
+            if (markersToAdd.length > 0) {
+                 markers.addLayers(markersToAdd);
+            }
+        }
+        
+        function renderizarImagenLink(data) {
+            if (data && data.toLowerCase() !== "sin imagen") {
+                return `<a href="${GOOGLE_IMG_URL_BASE}${data}" target="_blank" rel="noopener noreferrer">${data}</a>`;
+            }
+            return "Sin Imagen";
+        }
+
+        // MODIFICADO: Función para actualizar la caja de detalles con texto en negrita
+        function actualizarInfoBox(data) {
+            if (!data) {
+                infoDetalle.innerHTML = 'Seleccione un incidente en el mapa o en la tabla para ver los detalles.';
+                return;
+            }
+            // Se usa innerHTML para poder aplicar formato con etiquetas <b> y <br>
+            const contenido = `<b>ID:</b> ${data.id || 'N/A'} | <b>Fecha y Hora:</b> ${data.fechahora || 'N/A'}<br>` +
+                              `<b>Tipo:</b> ${data.tipo || 'N/A'} | <b>SubTipo:</b> ${data.subtipo || 'N/A'}<br>` +
+                              `<b>Obs:</b> ${data.obs || 'Sin observaciones'}`;
+            infoDetalle.innerHTML = contenido;
+        }
+        
+        function seleccionarFilaEnTabla(incidenteId) {
+            if (!tabla || !incidenteId) return;
+
+            tabla.rows({ page: 'all' }).nodes().to$().removeClass('selected');
+
+            tabla.rows({ page: 'all' }).every(function() {
+                const rowData = this.data();
+                if (rowData.id === incidenteId) {
+                    $(this.node()).addClass('selected');
+                }
+            });
+        }
+
+        async function cargarDatos() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error(`Error en la red: ${response.statusText}`);
+                const data = await response.json();
+
+                allMarkers = {};
+                data.forEach(incidente => {
+                    const lat = parseFloat(incidente.latitud);
+                    const lon = parseFloat(incidente.longitud);
+                    if (!isNaN(lat) && !isNaN(lon) && incidente.id) {
+                        let popupContent = `<b>ID:</b> ${incidente.id}<br><b>Tipo:</b> ${incidente.tipo}<br><b>Subtipo:</b> ${incidente.subtipo}<br>`;
+                        if (incidente.img1 && incidente.img1.toLowerCase() !== "sin imagen") {
+                            popupContent += `<br><a href="${GOOGLE_IMG_URL_BASE}${incidente.img1}" target="_blank" rel="noopener noreferrer"><img src="${GOOGLE_IMG_URL_BASE}${incidente.img1}" alt="Imagen 1" style="width:150px; height:auto; margin-top: 5px; border-radius: 4px;"></a>`;
+                        }
+                        
+                        const marker = L.marker([lat, lon]);
+                        marker.bindPopup(popupContent);
+                        
+                        marker.on('click', () => {
+                            actualizarInfoBox(incidente);
+                            seleccionarFilaEnTabla(incidente.id);
+                        });
+
+                        allMarkers[incidente.id] = marker;
+                    }
+                });
+
+                tabla = $('#datosTabla').DataTable({
+                    paging: true,
+                    pageLength: 10,
+                    lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+                    scrollX: true,
+                    data: data,
+                    columns: [
+                        { data: 'idgoogle' }, { data: 'id' }, { data: 'fechahora' },
+                        { data: 'ubicacion' }, { data: 'tipo' }, { data: 'subtipo' },
+                        { data: 'latitud' }, { data: 'longitud' },
+                        { data: 'altitud' }, { data: 'img1', render: renderizarImagenLink },
+                        { data: 'img2', render: renderizarImagenLink }, { data: 'img3', render: renderizarImagenLink },
+                        { data: 'img4', render: renderizarImagenLink }, { data: 'dispositivo' }, { data: 'ip' }
+                    ],
+                    language: { "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json" }
+                });
+
+                loader.style.display = 'none';
+                actualizarMarcadores(data);
+
+                tabla.on('draw.dt', function() {
+                    const filteredData = tabla.rows({ filter: 'applied' }).data().toArray();
+                    actualizarMarcadores(filteredData);
+                });
+                
+                $('#datosTabla tbody').on('click', 'tr', function () {
+                    $(this).siblings().removeClass('selected');
+                    $(this).addClass('selected');
+                    const rowData = tabla.row(this).data();
+                    
+                    if (rowData) {
+                        actualizarInfoBox(rowData);
+                        
+                        if (rowData.id) {
+                            const targetMarker = allMarkers[rowData.id];
+                            if (targetMarker) {
+                                map.closePopup();
+                                markers.zoomToShowLayer(targetMarker, () => {
+                                    targetMarker.openPopup();
+                                });
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error al cargar los datos:', error);
+                mostrarError('No se pudieron cargar los datos. Por favor, revisa la consola para más detalles.');
+            }
+        }
+
+        $(document).ready(function() {
+            map.on('move zoom', updateMapInfo);
+            updateMapInfo();
+            cargarDatos();
+        });
+    </script>
+</body>
+</html>

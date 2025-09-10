@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Calles y Arbolado</title>
+
+    <!-- 1. Estilos de Leaflet para el mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+
+    <!-- 2. Script de Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+
+    <!-- 3. Tailwind CSS para un diseño limpio y adaptable -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 4. Google Fonts para una tipografía moderna -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Estilos personalizados para la página y el mapa -->
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        /* Contenedor del mapa con sombra y bordes redondeados */
+        #map { 
+            height: 60vh; /* Altura del mapa */
+            border-radius: 0.75rem; 
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            z-index: 10; /* Asegura que el mapa esté por debajo de otros controles si es necesario */
+        }
+        /* Estilo para los campos de información */
+        .info-input {
+            background-color: #f3f4f6; /* Fondo gris claro */
+            border: 1px solid #d1d5db;
+            color: #1f2937;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+        }
+        /* Transición para el panel de información */
+        #info-panel {
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+        }
+        /* Estilos para la leyenda */
+        .legend {
+            line-height: 1.5;
+            color: #333;
+        }
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.9;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto p-4 md:p-8 space-y-6">
+        <!-- Encabezado -->
+        <div class="text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Calles de Jesús María | Medidas y Arbolado</h1>
+            <p class="text-gray-600 mt-2">Haz clic sobre una calle en el mapa para consultar su información.</p>
+        </div>
+
+        <!-- Contenedor del Mapa -->
+        <div id="map"></div>
+
+        <!-- Panel de Información (inicialmente oculto) -->
+        <div id="info-panel" class="bg-white p-6 rounded-xl shadow-md opacity-0 transform -translate-y-4 hidden">
+            <h2 class="text-2xl font-bold text-gray-700 mb-4 border-b pb-2">Información de la Calle</h2>
+            <div id="info-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Fila 1 -->
+                 <div>
+                    <label for="nombre2" class="block text-sm font-medium text-gray-700">Nombre</label>
+                    <input type="text" id="nombre2" readonly class="info-input mt-1 block w-full rounded-md shadow-sm p-2">
+                </div>
+                 <div>
+                    <label for="desde" class="block text-sm font-medium text-gray-700">Desde</label>
+                    <input type="text" id="desde" readonly class="info-input mt-1 block w-full rounded-md shadow-sm p-2">
+                </div>
+                 <div>
+                    <label for="hasta" class="block text-sm font-medium text-gray-700">Hasta</label>
+                    <input type="text" id="hasta" readonly class="info-input mt-1 block w-full rounded-md shadow-sm p-2">
+                </div>
+                <!-- Fila 2 -->
+                <div>
+                    <label for="calle" class="block text-sm font-medium text-gray-700">Ancho Calle (mts) = Calzada + Veredas</label>
+                    <input type="text" id="calle" readonly class="info-input mt-1 block w-full rounded-md shadow-sm p-2">
+                </div>
+                 <div>
+                    <label for="calzada" class="block text-sm font-medium text-gray-700">Ancho Calzada (mts)</label>
+                    <input type="text" id="calzada" readonly class="info-input mt-1 block w-full rounded-md shadow-sm p-2">
+                </div>
+                <div>
+                    <label for="vereda" class="block text-sm font-medium text-gray-700">Ancho Vereda (mts)</label>
+                    <input type="text" id="vereda" readonly class="info-input mt-1 block w-full rounded-md shadow-sm p-2">
+                </div>
+                <!-- Fila 3 -->
+                <div class="lg:col-span-1">
+                    <label for="estado" class="block text-sm font-medium text-gray-700">Tipo de Calle</label>
+                    <input type="text" id="estado" readonly class="info-input mt-1 block w-full rounded-md shadow-sm p-2">
+                </div>
+
+                <!-- Fila 5 (Observaciones) -->
+                <div class="col-span-1 md:col-span-2 lg:col-span-3">
+                    <label for="obs" class="block text-sm font-medium text-gray-700">Observaciones</label>
+                    <textarea id="obs" readonly rows="1" class="info-input mt-1 block w-full rounded-md shadow-sm p-2"></textarea>
+                </div>                
+                <!-- Fila 4 (Arbolado) -->
+                <div class="col-span-1 md:col-span-2 lg:col-span-3">
+                    <label for="arbolado" class="block text-sm font-medium text-gray-700">Arbolado</label>
+                    <div class="mt-1 flex rounded-md shadow-sm">
+                        <textarea id="arbolado" readonly rows="7" class="info-input block w-full rounded-none rounded-l-md p-2 flex-1 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                        <button type="button" id="copy-button" title="Copiar al portapapeles" class="relative -ml-px inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 text-sm font-medium rounded-r-md text-gray-700 bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200">
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            <span id="copy-button-text">Copiar</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+             <div id="info-placeholder" class="text-center text-gray-500 py-8">
+                <p>Seleccione una calle en el mapa para ver sus detalles.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN DEL MAPA ---
+
+        // 1. Coordenadas iniciales del mapa (centrado en Jesús María, Córdoba)
+        const initialCoords = [-30.9833, -64.0942];
+        const map = L.map('map').setView(initialCoords, 15);
+
+        // 2. Definición de los mapas base
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 20
+        }).addTo(map); // OSM se añade por defecto
+
+        const googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+            maxZoom: 20,
+            subdomains:['mt0','mt1','mt2','mt3'],
+            attribution: 'Imágenes &copy; Google'
+        });
+
+        const baseMaps = {
+            "OpenStreetMap": osm,
+            "Google Satellite": googleSat
+        };
+
+        // 3. Añadir el control para cambiar de mapa base
+        L.control.layers(baseMaps).addTo(map);
+
+        // --- CARGA DE LA CAPA WFS DE CALLES ---
+
+        // 4. URL del servicio WFS de GeoServer para los ejes de calle
+        //const wfsUrl = 'https://idecor-ws.mapascordoba.gob.ar/geoserver/idecor/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=idecor:jesua_maria_ejes_de_calle&outputFormat=application/json&srsName=EPSG:4326';
+        
+
+        const wfsUrl = "https://idecor-ws.mapascordoba.gob.ar/geoserver/idecor/Jesus_Maria_Ejes_Calles/wfs" +
+            "?service=WFS&version=1.0.0&request=GetFeature&typeName=idecor:Jesus_Maria_Ejes_Calles" +
+            "&outputFormat=application/json&srsName=epsg:4326";
+
+
+        let geoJsonLayer; // Variable para guardar la capa
+        let selectedLayer = null; // Variable para guardar la capa seleccionada
+
+        // Función para obtener el color según el estado de la calle
+        function getColor(estado) {
+            switch (estado) {
+                case 'ADOQUINADO':         return '#ffa200';
+                case 'PAVIMENTO FLEXIBLE': return '#b3b8d0';
+                case 'PAVIMENTO RIGIDO':   return '#667a84';
+                case 'RUTA NACIONAL':      return '#e31a1c';
+                case 'RUTA PROVINCIAL':    return '#eb4a4d';
+                case 'TIERRA':             return '#a86616';
+                //default:                   return '#888888';
+            }
+        }
+
+        // Estilos para resaltar y seleccionar calles
+        const highlightStyle = {
+            color: "#f59e0b", // Ámbar
+            weight: 5,
+            opacity: 1
+        };
+        
+        const selectedStyle = {
+            color: "#0819eb", // Negro para máxima visibilidad
+            weight: 7,
+            opacity: 1
+        };
+
+        // 5. Usamos la API Fetch para obtener los datos del WFS
+        fetch(wfsUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error en la respuesta de la red');
+                }
+                return response.json(); // Convertimos la respuesta a JSON
+            })
+            .then(data => {
+                // Creamos una capa GeoJSON con los datos recibidos
+                geoJsonLayer = L.geoJSON(data, {
+                    // Estilo dinámico basado en la propiedad 'estado'
+                    style: function(feature) {
+                        return {
+                            color: getColor(feature.properties.estado),
+                            weight: 4,
+                            opacity: 0.9
+                        };
+                    },
+                    // onEachFeature se ejecuta para cada línea (calle)
+                    onEachFeature: function (feature, layer) {
+                        // Añadimos los eventos a cada capa (línea)
+                        layer.on({
+                            // Evento al pasar el ratón por encima
+                            mouseover: function (e) {
+                                if (e.target !== selectedLayer) {
+                                    e.target.setStyle(highlightStyle);
+                                }
+                            },
+                            // Evento al quitar el ratón
+                            mouseout: function (e) {
+                                if (e.target !== selectedLayer) {
+                                    geoJsonLayer.resetStyle(e.target);
+                                }
+                            },
+                            // Evento al hacer clic
+                            click: function (e) {
+                                // Si ya había una capa seleccionada, le devolvemos su estilo por defecto
+                                if (selectedLayer) {
+                                    geoJsonLayer.resetStyle(selectedLayer);
+                                }
+
+                                // Actualizamos la capa seleccionada y aplicamos el estilo de selección
+                                selectedLayer = e.target;
+                                selectedLayer.setStyle(selectedStyle);
+                                
+                                // Rellenamos los campos de texto con las propiedades de la calle
+                                const properties = feature.properties;
+                                const infoPanel = document.getElementById('info-panel');
+                                const infoContent = document.getElementById('info-content');
+                                const infoPlaceholder = document.getElementById('info-placeholder');
+
+                                // Llenar los campos
+                                document.getElementById('nombre2').value = properties.nombre2 || 'No disponible';
+                                document.getElementById('desde').value = properties.desde || 'No disponible';
+                                document.getElementById('hasta').value = properties.hasta || 'No disponible';
+                                document.getElementById('estado').value = properties.estado || 'No disponible';
+                                document.getElementById('calle').value = properties.calle || 'No disponible';
+                                document.getElementById('calzada').value = properties.calzada || 'No disponible';
+                                document.getElementById('vereda').value = properties.vereda || 'No disponible';
+                                document.getElementById('arbolado').value = properties.arbolado || 'No disponible';
+                                document.getElementById('obs').value = properties.obs || 'No disponible';
+                                
+                                // Mostrar el panel de información con una animación
+                                infoPlaceholder.classList.add('hidden');
+                                infoContent.classList.remove('hidden');
+                                if (infoPanel.classList.contains('hidden')) {
+                                    infoPanel.classList.remove('hidden');
+                                    setTimeout(() => {
+                                        infoPanel.classList.remove('opacity-0', 'transform', '-translate-y-4');
+                                    }, 10); // Pequeño delay para asegurar que la transición se aplique
+                                }
+                                
+                                // Hacemos que el mapa se centre en la calle seleccionada
+                                map.fitBounds(e.target.getBounds().pad(0.1));
+
+                                // Desplazarse al panel de información
+                                infoPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                        });
+                    }
+                }).addTo(map);
+
+                // Ajustamos el zoom del mapa para que se vean todas las calles cargadas
+                map.fitBounds(geoJsonLayer.getBounds());
+            })
+            .catch(error => {
+                // Mostramos un error en la consola si la carga de datos falla
+                console.error('No se pudieron cargar los datos WFS:', error);
+                alert('Hubo un problema al cargar la capa de calles. Revisa la consola para más detalles.');
+            });
+            
+        // --- LEYENDA ---
+        const legend = L.control({position: 'bottomright'});
+
+        legend.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'info legend bg-white p-3 rounded-md shadow-lg');
+            const grades = ['ADOQUINADO', 'PAVIMENTO FLEXIBLE', 'PAVIMENTO RIGIDO', 'RUTA NACIONAL', 'RUTA PROVINCIAL', 'TIERRA'];
+            
+            div.innerHTML += '<h4 class="font-bold mb-2 text-gray-800">Tipo de Calle</h4>';
+
+            // Genera una etiqueta con un cuadro de color para cada estado
+            for (let i = 0; i < grades.length; i++) {
+                div.innerHTML +=
+                    '<div class="flex items-center mb-1">' +
+                    '<i style="background:' + getColor(grades[i]) + '"></i> ' +
+                    '<span class="text-sm text-gray-700">' + grades[i] + '</span>' +
+                    '</div>';
+            }
+            return div;
+        };
+
+        legend.addTo(map);
+
+/*         // --- MANEJO DEL BOTÓN DE COPIAR ---
+        const copyButton = document.getElementById('copy-button');
+        const copyButtonText = document.getElementById('copy-button-text');
+        const arboladoTextarea = document.getElementById('arbolado');
+
+
+        copyButton.addEventListener('click', () => {
+            // No se puede copiar de un elemento 'readonly' directamente en todos los navegadores.
+            // Se quita temporalmente el atributo, se selecciona y se vuelve a poner.
+            const wasReadOnly = arboladoTextarea.hasAttribute('readonly');
+            if (wasReadOnly) {
+              arboladoTextarea.removeAttribute('readonly');
+            }
+            
+            arboladoTextarea.select();
+            arboladoTextarea.setSelectionRange(0, 99999); // Para dispositivos móviles
+
+            try {
+                document.execCommand('copy');
+                copyButtonText.textContent = '¡Copiado!';
+                copyButton.classList.add('bg-green-100', 'text-green-700');
+
+                setTimeout(() => {
+                    copyButtonText.textContent = 'Copiar';
+                    copyButton.classList.remove('bg-green-100', 'text-green-700');
+                }, 2000); // Restaura el texto después de 2 segundos
+            } catch (err) {
+                console.error('Error al intentar copiar al portapapeles:', err);
+                copyButtonText.textContent = 'Error';
+                 setTimeout(() => {
+                    copyButtonText.textContent = 'Copiar';
+                }, 2000);
+            } finally {
+                 if(wasReadOnly){
+                    arboladoTextarea.setAttribute('readonly', true);
+                 }
+                 window.getSelection().removeAllRanges(); // Deseleccionar el texto
+            }
+        }); */
+
+        // --- MANEJO DEL BOTÓN DE COPIAR ---
+        const copyButton = document.getElementById('copy-button');
+        const copyButtonText = document.getElementById('copy-button-text');
+
+        const nombreCalleInput = document.getElementById('nombre2');
+        const desdeInput = document.getElementById('desde');
+        const hastaInput = document.getElementById('hasta');
+        const arboladoTextarea = document.getElementById('arbolado');
+
+        copyButton.addEventListener('click', () => {
+        // Obtener los valores de los inputs
+        const nombreCalle = nombreCalleInput.value;
+        const desde = desdeInput.value;
+        const hasta = hastaInput.value;
+        const arbolado = arboladoTextarea.value;
+
+        // Concatenar el texto en el formato deseado
+        const textoParaCopiar = `Calle: ${nombreCalle} | Desde: ${desde} - Hasta: ${hasta}\n \n${arbolado}`;
+
+        // Usar la API Clipboard para copiar el texto
+        navigator.clipboard.writeText(textoParaCopiar)
+            .then(() => {
+            copyButtonText.textContent = '¡Copiado!';
+            copyButton.classList.add('bg-green-100', 'text-green-700');
+
+            // Restaurar el texto y los estilos después de 2 segundos
+            setTimeout(() => {
+                copyButtonText.textContent = 'Copiar';
+                copyButton.classList.remove('bg-green-100', 'text-green-700');
+            }, 2000);
+            })
+            .catch(err => {
+            console.error('Error al intentar copiar al portapapeles:', err);
+            copyButtonText.textContent = 'Error';
+            // Restaurar el texto después de un error
+            setTimeout(() => {
+                copyButtonText.textContent = 'Copiar';
+            }, 2000);
+            });
+        });
+
+
+
+        // Ocultar el contenido del panel al inicio y mostrar el placeholder
+        document.addEventListener('DOMContentLoaded', (event) => {
+            document.getElementById('info-content').classList.add('hidden');
+            document.getElementById('info-placeholder').classList.remove('hidden');
+        });
+
+    </script>
+</body>
+</html>
