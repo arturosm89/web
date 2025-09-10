@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa KML desde Google Drive</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #mapa {
+            height: 100vh;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="mapa"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@mapbox/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
+
+<script>
+    const map = L.map('mapa').setView([-30.98493, -64.09759], 14);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 20, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+
+    // --- ENLACE CON EL ARCHIVO EN GITHUB ---
+    // Reemplaza esta URL con la que te dio GitHub Pages
+
+    //var kmlUrl = 'https://arturosm89.github.io/mapkml/barrios_20082025_0903.kml'; 
+
+    //var kmlUrl = 'https://arturosm89.github.io/mapkml/comercios_26082025_1012.kml';
+
+    var kmlUrl = 'https://arturosm89.github.io/mapkml/parcelas_09092025_1155.kml';
+
+    
+    omnivore.kml(kmlUrl)
+        .on('ready', function() {
+            map.fitBounds(this.getBounds());
+        })
+        .on('error', function(e) {
+            console.error('Error al cargar el KML:', e);
+            alert('No se pudo cargar el archivo KML. Asegúrate de que el enlace sea correcto.');
+        })
+        .addTo(map);
+
+</script>
+
+   
+</body>
+</html>

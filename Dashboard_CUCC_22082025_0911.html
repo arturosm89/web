@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Incidentes V13</title>
+
+    <!-- Librerías externas para gráficos y mapas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --color-primary: #4361ee;
+            --color-secondary: #3f37c9;
+            --color-accent: #4895ef;
+            --color-danger: #f72585;
+            --color-success: #4cc9f0;
+            --color-warning: #f77f00;
+            --color-dark: #2b2d42;
+            --color-light: #f8f9fa;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(120deg, var(--color-primary), var(--color-secondary));
+            color: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(67, 97, 238, 0.3);
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 380px;
+            width: 100%;
+        }
+        
+        #mapa-incidentes {
+            height: 520px;
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+        }
+        
+        .filter-container {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+        
+        .btn {
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            font-weight: 600;
+            padding: 10px 20px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(120deg, var(--color-primary), var(--color-secondary));
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(67, 97, 238, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(120deg, #6c757d, #5a6268);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(108, 117, 125, 0.4);
+        }
+        
+        .legend {
+            padding: 15px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 5px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        
+        .legend-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--color-primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        .status-card {
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .status-error {
+            background: #feeaea;
+            color: #d0453e;
+            border-left: 4px solid #d0453e;
+        }
+        
+        .status-loading {
+            background: #ebf4ff;
+            color: var(--color-primary);
+            border-left: 4px solid var(--color-primary);
+        }
+        
+        .status-success {
+            background: #effef6;
+            color: #0c9c59;
+            border-left: 4px solid #0c9c59;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin: 10px 0;
+        }
+        
+        .stat-title {
+            font-size: 0.9rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .incident-marker {
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(67, 97, 238, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0); }
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8">
+
+    <div class="header p-6 mb-8 animate-fade-in">
+        <h1 class="text-3xl md:text-4xl font-bold text-center mb-2">
+            <i class="fas fa-map-marked-alt mr-3"></i>Dashboard de Monitoreo de Incidentes
+        </h1>
+        <p class="text-center opacity-90">Visualización en tiempo real de incidentes reportados</p>
+    </div>
+
+    <!-- Contenedor para mensajes de estado -->
+    <div id="status-container"></div>
+
+    <!-- Contenedor de filtros -->
+    <div class="filter-container p-5 mb-8 flex flex-wrap justify-between items-center gap-4 animate-fade-in">
+        <div class="flex flex-wrap items-center gap-4">
+            <div>
+                <label for="fecha-inicio" class="font-semibold text-gray-700 block mb-2"><i class="far fa-calendar-alt mr-2"></i>Desde:</label>
+                <input type="date" id="fecha-inicio" class="border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm">
+            </div>
+            <div>
+                <label for="fecha-fin" class="font-semibold text-gray-700 block mb-2"><i class="far fa-calendar-check mr-2"></i>Hasta:</label>
+                <input type="date" id="fecha-fin" class="border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm">
+            </div>
+        </div>
+        
+        <div class="flex flex-wrap gap-3">
+            <button id="btn-filtrar" class="btn btn-primary">
+                <i class="fas fa-filter mr-2"></i>Filtrar
+            </button>
+            <button id="btn-limpiar" class="btn btn-secondary">
+                <i class="fas fa-broom mr-2"></i>Limpiar
+            </button>
+        </div>
+    </div>
+
+    <!-- Estadísticas rápidas -->
+    <div id="stats-container" class="stats-grid animate-fade-in" style="display: none;">
+        <div class="stat-card">
+            <div class="stat-title">Total Incidentes</div>
+            <div class="stat-value" id="total-incidentes">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Tipos Diferentes</div>
+            <div class="stat-value" id="total-tipos">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Con Geodatos</div>
+            <div class="stat-value" id="total-geodata">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Período</div>
+            <div class="stat-value" id="periodo-dias">0</div>
+        </div>
+    </div>
+
+    <!-- Contenedor de la grilla de gráficos y el mapa -->
+    <div id="dashboard-content" class="hidden animate-fade-in">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
+            <div class="card p-6">
+                <div class="chart-container">
+                    <canvas id="turnoChart"></canvas>
+                </div>
+            </div>
+            <div class="card p-6">
+                <div class="chart-container">
+                    <canvas id="tipoIncidenteChart"></canvas>
+                </div>
+            </div>
+            <div class="card p-6">
+                <div class="chart-container">
+                    <canvas id="derivacionChart"></canvas>
+                </div>
+            </div>
+            <div class="card p-6">
+                <div class="chart-container">
+                    <canvas id="activacionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="relative">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-map-marked-alt mr-3 text-blue-500"></i>Mapa de Incidentes
+            </h2>
+            <div id="mapa-incidentes"></div>
+            <div id="map-legend" class="legend absolute bottom-4 right-4 z-1000" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN ---
+        const googleSheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE0MZDfS3Cl6Xxg_tUpqJBDwtSeyjiBHzaWx40YMW5J-Ca7Q9biJ9StIiEIYSLAkdO7hGw2-5r2Tgu/pub?gid=906786940&single=true&output=csv';
+
+        // Paleta de colores específica para tipos de incidentes
+        const colorMap = {
+            'ACCIDENTOLOGIA VIAL': '#e31a1c',
+            'INFORMATIVO': '#00ca40',
+            'MUNICIPAL': '#ffb957',
+            'POLICIAL': '#060eef',
+            'OTROS': '#5afbc0',
+            'RECLAMO': '#cb8dff',
+            'DEFAULT': '#808080' // Color por defecto
+        };
+
+        let todosLosDatos = [];
+        let datosFiltrados = [];
+        let chartInstances = {};
+        let map;
+        let markersLayer;
+
+        // --- INICIO DE LA APLICACIÓN ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            mostrarMensaje('loading', '<div class="text-center"><div class="loading-spinner mb-3"></div><p class="text-lg font-medium">Cargando datos desde Google Sheets...</p></div>');
+            
+            try {
+                todosLosDatos = await cargarDatos(googleSheetURL);
+                
+                if (todosLosDatos.length > 0) {
+                    todosLosDatos = procesarDatos(todosLosDatos);
+                    ocultarMensaje();
+                    document.getElementById('dashboard-content').classList.remove('hidden');
+                    document.getElementById('stats-container').style.display = 'grid';
+                    inicializarDashboard(todosLosDatos);
+                } else {
+                    mostrarMensaje('error', 'No se encontraron datos en el archivo. Verifica que la hoja de cálculo no esté vacía o que el formato sea correcto.');
+                }
+
+                document.getElementById('btn-filtrar').addEventListener('click', aplicarFiltroFecha);
+                document.getElementById('btn-limpiar').addEventListener('click', limpiarFiltros);
+
+            } catch (error) {
+                console.error('Error al cargar datos:', error);
+                mostrarMensaje('error',  
+                    `<strong>Error al cargar los datos.</strong> No se pudo acceder a la hoja de cálculo.
+                     <div class="mt-3 p-3 bg-gray-100 rounded-lg">
+                        <p class="text-sm">Posibles causas:</p>
+                        <ul class="text-sm list-disc pl-5 mt-2">
+                            <li>La URL de la hoja de cálculo no es correcta</li>
+                            <li>La hoja no está publicada para acceso público</li>
+                            <li>Problemas de conectividad</li>
+                        </ul>
+                     </div>
+                     <div class="mt-4">
+                        <button onclick="location.reload()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                            <i class="fas fa-sync-alt mr-2"></i>Reintentar
+                        </button>
+                     </div>`
+                );
+            }
+        });
+
+        // --- FUNCIONES PRINCIPALES ---
+
+        /**
+         * CORREGIDO: Función de conversión de coordenadas actualizada.
+         * Ahora interpreta correctamente valores numéricos largos sin punto decimal
+         * (ej. -309809249 se convierte en -30.9809249).
+         * También maneja formatos estándar con punto o coma.
+         */
+        function convertirCoordenada(valor) {
+            if (!valor) return null;
+            let strValor = valor.toString().trim();
+
+            // Reemplazar comas por puntos para unificar el separador
+            strValor = strValor.replace(',', '.');
+
+            // Si ya tiene un formato decimal estándar (contiene un punto), lo procesamos
+            if (strValor.includes('.')) {
+                const numero = parseFloat(strValor);
+                if (isNaN(numero) || Math.abs(numero) > 180) return null;
+                return parseFloat(numero.toFixed(6));
+            }
+
+            // Si no tiene punto, asumimos el formato especial (ej: -309809249)
+            strValor = strValor.replace(/[^\d-]/g, '');
+
+            const esNegativo = strValor.startsWith('-');
+            const valorAbsoluto = esNegativo ? strValor.substring(1) : strValor;
+
+            // Se necesitan al menos 3 dígitos para este formato (ej. 301 para -30.1)
+            if (valorAbsoluto.length < 3) return null;
+
+            // La regla es que los primeros 2 dígitos son la parte entera
+            const parteEntera = valorAbsoluto.substring(0, 2);
+            const parteDecimal = valorAbsoluto.substring(2);
+            
+            let coordenada = parseFloat(`${parteEntera}.${parteDecimal}`);
+
+            if (isNaN(coordenada)) return null;
+
+            if (esNegativo) {
+                coordenada = -coordenada;
+            }
+
+            if (Math.abs(coordenada) > 180) return null;
+
+            return parseFloat(coordenada.toFixed(6));
+        }
+
+        function procesarDatos(datos) {
+            return datos.map(item => {
+                // Usar las columnas 's' y 't' para las coordenadas
+                item.latitud = convertirCoordenada(item.s);
+                item.longitud = convertirCoordenada(item.t);
+                
+                if (item.fecha) {
+                    item.fechaObj = parsearFecha(item.fecha);
+                }
+                return item;
+            });
+        }
+
+        function inicializarDashboard(datos) {
+            crearMapa();
+            actualizarDashboard(datos);
+        }
+
+        function actualizarDashboard(datos) {
+            datosFiltrados = datos;
+            crearGrafico('turnoChart', 'bar', 'Incidentes por Turno', datos, 'turno');
+            crearGrafico('tipoIncidenteChart', 'doughnut', 'Incidentes por Tipo', datos, 'tipoincidente');
+            crearGrafico('derivacionChart', 'pie', 'Incidentes por Derivación', datos, 'derivacion');
+            crearGrafico('activacionChart', 'pie', 'Incidentes por Activación', datos, 'activacion');
+            actualizarMarcadores(datos);
+            actualizarEstadisticas(datos);
+            crearLeyendaMapa(datos);
+        }
+
+        async function cargarDatos(url) {
+            const respuesta = await fetch(url);
+            if (!respuesta.ok) {
+                throw new Error(`Error de red: ${respuesta.status} ${respuesta.statusText}`);
+            }
+            const textoCsv = await respuesta.text();
+            return csvAJson(textoCsv);
+        }
+
+        function aplicarFiltroFecha() {
+            const fechaInicioStr = document.getElementById('fecha-inicio').value;
+            const fechaFinStr = document.getElementById('fecha-fin').value;
+            if (!fechaInicioStr || !fechaFinStr) {
+                mostrarMensaje('error', 'Por favor, selecciona una fecha de inicio y una de fin.');
+                setTimeout(ocultarMensaje, 3000);
+                return;
+            }
+            const fechaInicio = new Date(fechaInicioStr + 'T00:00:00');
+            const fechaFin = new Date(fechaFinStr + 'T23:59:59');
+            const datosFiltrados = todosLosDatos.filter(fila => {
+                if (!fila.fechaObj) return false;
+                return fila.fechaObj >= fechaInicio && fila.fechaObj <= fechaFin;
+            });
+            if (datosFiltrados.length === 0) {
+                mostrarMensaje('info', 'No se encontraron incidentes en el rango de fechas seleccionado.');
+            } else {
+                ocultarMensaje();
+            }
+            actualizarDashboard(datosFiltrados);
+        }
+
+        function limpiarFiltros() {
+            document.getElementById('fecha-inicio').value = '';
+            document.getElementById('fecha-fin').value = '';
+            actualizarDashboard(todosLosDatos);
+            ocultarMensaje();
+        }
+
+        // --- FUNCIONES DE GRÁFICOS Y MAPA ---
+
+        function crearGrafico(canvasId, tipo, titulo, datos, columna) {
+            const conteo = contarValores(datos, columna);
+            const etiquetas = Object.keys(conteo);
+            const valores = Object.values(conteo);
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            let colores;
+            if (canvasId === 'tipoIncidenteChart') {
+                colores = etiquetas.map(etiqueta => colorMap[etiqueta.toUpperCase()] || colorMap['DEFAULT']);
+            } else {
+                colores = etiquetas.map(() => generarColorAleatorio());
+            }
+
+            if (chartInstances[canvasId]) {
+                chartInstances[canvasId].destroy();
+            }
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: tipo,
+                data: { labels: etiquetas, datasets: [{ label: 'Cantidad', data: valores, backgroundColor: colores, borderColor: '#ffffff', borderWidth: 2 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: titulo, font: { size: 18, weight: 'bold' }, padding: { top: 10, bottom: 20 }, color: '#2d3748' }, legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle' } } } }
+            });
+        }
+        
+        function crearMapa() {
+            map = L.map('mapa-incidentes').setView([-30.98493, -64.09759], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            markersLayer = L.layerGroup().addTo(map);
+        }
+        
+        /**
+         * CORREGIDO: Se aplica un filtro temporal para mostrar en el mapa
+         * únicamente el incidente con ID 24753 para fines de depuración.
+         */
+        function actualizarMarcadores(datos) {
+            markersLayer.clearLayers();
+            
+            // --- FILTRO DE PRUEBA: Mostrar solo el incidente 24753 ---
+            const datosMapa = datos.filter(fila => fila.id === '24753');
+            
+            const marcadoresConCoordenadas = datosMapa.filter(fila => 
+                fila.latitud != null && fila.longitud != null && 
+                !isNaN(fila.latitud) && !isNaN(fila.longitud)
+            );
+            
+            console.log(`Buscando incidente ID 24753. Encontrados con geodatos: ${marcadoresConCoordenadas.length}`);
+            
+            marcadoresConCoordenadas.forEach(fila => {
+                console.log(`Añadiendo marcador para ID ${fila.id} en [${fila.latitud}, ${fila.longitud}]`);
+                const tipoIncidente = (fila.tipoincidente || 'Otro').trim();
+                const color = colorMap[tipoIncidente.toUpperCase()] || colorMap['DEFAULT'];
+                
+                const marker = L.circleMarker([fila.latitud, fila.longitud], {
+                    radius: 10, // Aumentamos el radio para que sea más visible
+                    fillColor: color, 
+                    color: '#ffffff', 
+                    weight: 2, 
+                    opacity: 1, 
+                    fillOpacity: 0.9, 
+                    className: 'incident-marker'
+                });
+                const popupContent = `<div class="p-2" style="min-width: 200px;"><h3 class="font-bold text-lg mb-2" style="color: ${color};">${tipoIncidente}</h3><p><strong>ID:</strong> ${fila.id}</p><p><strong>Fecha:</strong> ${fila.fecha || 'N/A'}</p><p><strong>Turno:</strong> ${fila.turno || 'N/A'}</p><p><strong>Derivación:</strong> ${fila.derivacion || 'N/A'}</p>${fila.direccion ? `<p><strong>Dirección:</strong> ${fila.direccion}</p>` : ''}</div>`;
+                marker.bindPopup(popupContent);
+                markersLayer.addLayer(marker);
+            });
+            
+            if (marcadoresConCoordenadas.length > 0) {
+                const group = new L.featureGroup(markersLayer.getLayers());
+                map.fitBounds(group.getBounds().pad(0.5)); // Aumentar el padding para que se vea mejor un solo punto
+            } else {
+                console.warn("No se pudo encontrar o geolocalizar el incidente 24753. El mapa se centrará por defecto.");
+                map.setView([-30.98493, -64.09759], 14);
+            }
+        }
+        
+        function crearLeyendaMapa(datos) {
+            const leyenda = document.getElementById('map-legend');
+            const tiposPresentes = [...new Set(datos
+                .filter(d => d.latitud != null && d.longitud != null)
+                .map(d => (d.tipoincidente || 'Otro').trim().toUpperCase())
+            )];
+            
+            if (tiposPresentes.length === 0) {
+                leyenda.style.display = 'none';
+                return;
+            }
+            let contenido = '<h3 class="font-bold mb-3 text-gray-800 flex items-center"><i class="fas fa-key mr-2"></i>Tipos de Incidentes</h3>';
+            
+            tiposPresentes.forEach(tipo => {
+                const color = colorMap[tipo] || colorMap['DEFAULT'];
+                const tipoMostrado = tipo.charAt(0) + tipo.slice(1).toLowerCase();
+                contenido += `<div class="legend-item"><div class="legend-color" style="background-color: ${color}"></div><span class="text-sm">${tipoMostrado}</span></div>`;
+            });
+
+            leyenda.innerHTML = contenido;
+            leyenda.style.display = 'block';
+        }
+        
+        function actualizarEstadisticas(datos) {
+            document.getElementById('total-incidentes').textContent = datos.length;
+            const tipos = [...new Set(datos.map(item => item.tipoincidente))].filter(Boolean);
+            document.getElementById('total-tipos').textContent = tipos.length;
+            const conGeodata = datos.filter(item => item.latitud != null && item.longitud != null).length;
+            document.getElementById('total-geodata').textContent = conGeodata;
+            if (datos.length > 0) {
+                const fechas = datos.map(item => item.fechaObj).filter(Boolean);
+                if (fechas.length > 0) {
+                    const minFecha = new Date(Math.min(...fechas));
+                    const maxFecha = new Date(Math.max(...fechas));
+                    const diffTime = Math.abs(maxFecha - minFecha);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    document.getElementById('periodo-dias').textContent = diffDays + ' días';
+                } else {
+                    document.getElementById('periodo-dias').textContent = 'N/A';
+                }
+            } else {
+                document.getElementById('periodo-dias').textContent = '0';
+            }
+        }
+
+        // --- FUNCIONES AUXILIARES ---
+
+        function generarColorAleatorio() {
+            const letras = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letras[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        function mostrarMensaje(type, message) {
+            const container = document.getElementById('status-container');
+            let className = 'status-card ';
+            if (type === 'loading') className += 'status-loading';
+            else if (type === 'error') className += 'status-error';
+            else if (type === 'success') className += 'status-success';
+            else className += 'status-loading';
+            container.className = className;
+            container.innerHTML = message;
+            container.style.display = 'block';
+        }
+
+        function ocultarMensaje() {
+            const container = document.getElementById('status-container');
+            container.style.display = 'none';
+        }
+
+        function contarValores(datos, columna) {
+            return datos.reduce((acc, fila) => {
+                const valor = fila[columna] ? fila[columna].trim() : 'Sin Datos';
+                acc[valor] = (acc[valor] || 0) + 1;
+                return acc;
+            }, {});
+        }
+        
+        function csvAJson(csv) {
+            const lines = csv.replace(/\r/g, '').split('\n');
+            if (lines.length < 2) return [];
+
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '').normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+            
+            const result = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+
+                const obj = {};
+                let current_value = '';
+                let in_quotes = false;
+                let field_index = 0;
+                
+                const row = lines[i] + ',';
+
+                for (const char of row) {
+                    if (char === '"' && !in_quotes) {
+                        in_quotes = true;
+                    } else if (char === '"' && in_quotes) {
+                        in_quotes = false;
+                    } else if (char === ',' && !in_quotes) {
+                        const header = headers[field_index];
+                        if (header) {
+                            obj[header] = current_value.trim();
+                        }
+                        current_value = '';
+                        field_index++;
+                    } else {
+                        current_value += char;
+                    }
+                }
+                
+                if (Object.keys(obj).length > 0) {
+                     result.push(obj);
+                }
+            }
+            return result;
+        }
+
+        function parsearFecha(fechaStr) {
+            if (!fechaStr) return null;
+            if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(fechaStr)) {
+                const partes = fechaStr.split('/');
+                return new Date(partes[2], partes[1] - 1, partes[0]);
+            }
+            if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(fechaStr)) {
+                return new Date(fechaStr);
+            }
+            const fecha = new Date(fechaStr);
+            if (!isNaN(fecha)) return fecha;
+            return null;
+        }
+
+    </script>
+</body>
+</html>
