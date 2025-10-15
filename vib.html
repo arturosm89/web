@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activar/Detener Vibración</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    p {
+      margin-top: 20px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <button id="botonVibrar" onclick="toggleVibracion()">Iniciar Vibración</button>
+    <p id="mensaje">Presiona el botón para iniciar la vibración</p>
+  </div>
+
+  <script>
+    let vibrando = false;
+    let intervaloVibracion = null;
+
+    function toggleVibracion() {
+      const boton = document.getElementById('botonVibrar');
+      const mensaje = document.getElementById('mensaje');
+
+      if (!('vibrate' in navigator)) {
+        mensaje.textContent = 'Tu dispositivo no soporta la vibración.';
+        return;
+      }
+
+      if (!vibrando) {
+        // Iniciar vibración continua (repite un patrón de 200ms vibración, 100ms pausa)
+        intervaloVibracion = setInterval(() => {
+          navigator.vibrate(200);
+        }, 300); // Repite cada 300ms (200ms vibración + 100ms pausa)
+        vibrando = true;
+        boton.textContent = 'Detener Vibración';
+        mensaje.textContent = 'Vibración activada';
+      } else {
+        // Detener vibración
+        clearInterval(intervaloVibracion);
+        navigator.vibrate(0); // Detiene cualquier vibración activa
+        vibrando = false;
+        boton.textContent = 'Iniciar Vibración';
+        mensaje.textContent = 'Vibración detenida';
+      }
+    }
+  </script>
+</body>
+</html>
