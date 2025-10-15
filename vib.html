@@ -13,7 +13,7 @@
       height: 100vh;
       margin: 0;
       font-family: Arial, sans-serif;
-      background-color: #f0f0f0;
+      background-color: #000000;
     }
     button {
       padding: 15px 30px;
@@ -55,7 +55,7 @@
       if (!vibrando) {
         // Iniciar vibración continua (repite un patrón de 200ms vibración, 100ms pausa)
         intervaloVibracion = setInterval(() => {
-          navigator.vibrate(200);
+          navigator.vibrate(300);
         }, 300); // Repite cada 300ms (200ms vibración + 100ms pausa)
         vibrando = true;
         boton.textContent = 'Detener Vibración';
@@ -73,3 +73,4 @@
 </body>
 
 </html>
+
