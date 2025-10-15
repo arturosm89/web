@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activar Vibración</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    p {
+      margin-top: 20px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <button onclick="vibrar()">Activar Vibración</button>
+    <p id="mensaje">Presiona el botón para vibrar</p>
+  </div>
+
+  <script>
+    function vibrar() {
+      if ('vibrate' in navigator) {
+        // Activa la vibración: 200ms de vibración, 100ms de pausa, 200ms de vibración
+        navigator.vibrate([200, 100, 200]);
+        document.getElementById('mensaje').textContent = '¡Vibración activada!';
+      } else {
+        document.getElementById('mensaje').textContent = 'Tu dispositivo no soporta la vibración.';
+      }
+    }
+  </script>
+</body>
+</html>
