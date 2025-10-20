@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vibración, Red y Casting</title>
+  <title>Vibración, Red, Casting y Grabación</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <style>
     body {
@@ -57,7 +57,25 @@
     video {
       max-width: 100%;
       max-height: 150px;
+      background-color: #333;
+      display: block;
+    }
+    canvas {
+      width: 100%;
+      max-width: 280px;
+      height: 20px;
+      background-color: #222;
       display: none;
+    }
+    a.download-link {
+      color: #1e90ff;
+      text-decoration: none;
+      font-size: 14px;
+      margin-top: 5px;
+      display: none;
+    }
+    a.download-link:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -80,10 +98,24 @@
     <p id="mensajeCasting">Presiona para transmitir</p>
   </div>
 
+  <div class="seccion">
+    <h2>Grabar Video</h2>
+    <button id="botonGrabar" onclick="toggleGrabar()">Iniciar Grabación</button>
+    <p id="mensajeGrabar">Presiona para grabar video</p>
+    <video id="vistaPrevia" autoplay muted playsinline></video>
+    <canvas id="indicadorAudio"></canvas>
+    <a id="descargarVideo" class="download-link" href="#" download="grabacion.mp4">Descargar Video</a>
+  </div>
+
   <script>
     let vibrando = false;
     let intervaloVibracion = null;
     let videoElement = null;
+    let grabando = false;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let audioContext = null;
+    let analyser = null;
 
     const debug = (msg) => {
       console.log(msg);
@@ -105,14 +137,12 @@
         vibrando = true;
         boton.textContent = 'Detener Vibración';
         mensaje.textContent = 'Vibración activada';
-        debug('Vibración iniciada');
       } else {
         clearInterval(intervaloVibracion);
         navigator.vibrate(0);
         vibrando = false;
         boton.textContent = 'Iniciar Vibración';
         mensaje.textContent = 'Vibración detenida';
-        debug('Vibración detenida');
       }
     };
 
@@ -131,7 +161,7 @@
         `Velocidad: ${conn.downlink ? conn.downlink + ' Mbps' : 'Desconocido'}`,
         `Retardo: ${conn.rtt ? conn.rtt + ' ms' : 'Desconocido'}`,
         `Ahorro de datos: ${conn.saveData ? 'ON' : 'OFF'}`,
-        conn.type === 'wifi' ? 'Conectado a WiFi' : 'No estás en WiFi. Conéctate para casting.'
+        conn.type === 'wifi' ? 'Conectado a WiFi' : 'No estás en WiFi.'
       ].join('\n');
 
       debug('Info de red:\n' + info);
@@ -172,7 +202,95 @@
         debug('Error al capturar pantalla: ' + err.message + '\nPermite captura en Chrome.');
       }
     };
+
+    const toggleGrabar = async () => {
+      const boton = document.getElementById('botonGrabar');
+      const mensaje = document.getElementById('mensajeGrabar');
+      const video = document.getElementById('vistaPrevia');
+      const canvas = document.getElementById('indicadorAudio');
+      const descargar = document.getElementById('descargarVideo');
+
+      if (!grabando) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          mensaje.textContent = 'Cámara/micrófono no soportado';
+          debug('Error: Usa Chrome en Android y permite cámara/micrófono.');
+          return;
+        }
+
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
+          });
+
+          video.srcObject = stream;
+          video.play();
+
+          // Configurar grabación
+          recordedChunks = [];
+          mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"'
+          });
+
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) recordedChunks.push(e.data);
+          };
+
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedChunks, { type: 'video/mp4' });
+            descargar.href = URL.createObjectURL(blob);
+            descargar.style.display = 'block';
+            mensaje.textContent = 'Grabación detenida. Descarga disponible.';
+            debug('Grabación finalizada. Usa el enlace para descargar.');
+          };
+
+          mediaRecorder.start();
+          grabando = true;
+          boton.textContent = 'Detener Grabación';
+          mensaje.textContent = 'Grabando video...';
+
+          // Indicador de audio
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          analyser = audioContext.createAnalyser();
+          const source = audioContext.createMediaStreamSource(stream);
+          source.connect(analyser);
+          analyser.fftSize = 256;
+          canvas.style.display = 'block';
+          const ctx = canvas.getContext('2d');
+          const bufferLength = analyser.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+
+          const drawAudio = () => {
+            if (!grabando) return;
+            analyser.getByteFrequencyData(dataArray);
+            ctx.fillStyle = '#222';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let x = 0;
+            for (let i = 0; i < bufferLength; i++) {
+              const barHeight = dataArray[i] / 2;
+              ctx.fillStyle = `rgb(0, ${Math.min(barHeight + 50, 255)}, 0)`;
+              ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+              x += barWidth + 1;
+            }
+            requestAnimationFrame(drawAudio);
+          };
+          drawAudio();
+
+        } catch (err) {
+          mensaje.textContent = 'Error al grabar';
+          debug('Error al acceder a cámara/micrófono: ' + err.message + '\nPermite acceso en Chrome.');
+        }
+      } else {
+        mediaRecorder.stop();
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+        grabando = false;
+        boton.textContent = 'Iniciar Grabación';
+        canvas.style.display = 'none';
+        if (audioContext) audioContext.close();
+      }
+    };
   </script>
 </body>
 </html>
-
