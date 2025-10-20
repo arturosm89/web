@@ -171,6 +171,30 @@
     const iniciarCasting = async () => {
       const mensaje = document.getElementById('mensajeCasting');
 
+      // Intentar con Presentation API
+      if ('PresentationRequest' in window) {
+        try {
+          const presentationRequest = new PresentationRequest(['https://www.youtube.com']);
+          const availability = await presentationRequest.getAvailability();
+          if (availability.value) {
+            debug('Dispositivos Cast disponibles. Iniciando conexión...');
+            const connection = await presentationRequest.start();
+            mensaje.textContent = 'Conectado a dispositivo. Transmitiendo...';
+            connection.onconnect = () => debug('Conexión establecida');
+            connection.onclose = () => {
+              mensaje.textContent = 'Casting detenido';
+              debug('Conexión cerrada');
+            };
+            return;
+          } else {
+            debug('No se encontraron dispositivos Cast con Presentation API.');
+          }
+        } catch (err) {
+          debug('Error con Presentation API: ' + err.message);
+        }
+      }
+
+      // Respaldo con getDisplayMedia
       if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
         mensaje.textContent = 'Casting no soportado';
         debug('Error: Usa Chrome 72+ en Android. Verifica permisos.');
@@ -187,7 +211,7 @@
         }
 
         mensaje.textContent = 'Pantalla capturada. Usa Chrome para transmitir';
-        debug('¡Pantalla capturada!\nPasos:\n1. Chrome > Menú (3 puntos) > Transmitir.\n2. Selecciona tu TV/Chromecast.\n3. Elige "Transmitir pantalla".\nAsegúrate de estar en la misma WiFi.');
+        debug('¡Pantalla capturada!\nPasos:\n1. Chrome > Menú (3 puntos) > Transmitir.\n2. Selecciona tu TV/Chromecast.\n3. Elige "Transmitir pantalla".\nVerifica: misma WiFi, UPnP activado en router.');
 
         stream.getVideoTracks()[0].onended = () => {
           if (videoElement) {
@@ -226,7 +250,6 @@
           video.srcObject = stream;
           video.play();
 
-          // Configurar grabación
           recordedChunks = [];
           mediaRecorder = new MediaRecorder(stream, {
             mimeType: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"'
@@ -249,7 +272,6 @@
           boton.textContent = 'Detener Grabación';
           mensaje.textContent = 'Grabando video...';
 
-          // Indicador de audio
           audioContext = new (window.AudioContext || window.webkitAudioContext)();
           analyser = audioContext.createAnalyser();
           const source = audioContext.createMediaStreamSource(stream);
