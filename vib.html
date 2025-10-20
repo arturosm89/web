@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activar/Detener Vibración y Propiedades de Red</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #000000;
+      gap: 20px;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    p {
+      margin-top: 10px;
+      color: #333;
+      text-align: center;
+    }
+    .seccion {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="seccion">
+    <h2>Vibración</h2>
+    <button id="botonVibrar" onclick="toggleVibracion()">Iniciar Vibración</button>
+    <p id="mensajeVibracion">Presiona el botón para iniciar la vibración</p>
+  </div>
+
+  <div class="seccion">
+    <h2>Propiedades de Red</h2>
+    <button onclick="mostrarPropiedadesRed()">Mostrar Propiedades de Red</button>
+    <p id="mensajeRed">Presiona el botón para ver info de la conexión (solo info general disponible)</p>
+  </div>
+
+  <script>
+    let vibrando = false;
+    let intervaloVibracion = null;
+
+    function toggleVibracion() {
+      const boton = document.getElementById('botonVibrar');
+      const mensaje = document.getElementById('mensajeVibracion');
+
+      if (!('vibrate' in navigator)) {
+        mensaje.textContent = 'Tu dispositivo no soporta la vibración.';
+        return;
+      }
+
+      if (!vibrando) {
+        // Iniciar vibración continua (repite un patrón de 200ms vibración, 100ms pausa)
+        intervaloVibracion = setInterval(() => {
+          navigator.vibrate(200);
+        }, 300); // Repite cada 300ms (200ms vibración + 100ms pausa)
+        vibrando = true;
+        boton.textContent = 'Detener Vibración';
+        mensaje.textContent = 'Vibración activada';
+      } else {
+        // Detener vibración
+        clearInterval(intervaloVibracion);
+        navigator.vibrate(0); // Detiene cualquier vibración activa
+        vibrando = false;
+        boton.textContent = 'Iniciar Vibración';
+        mensaje.textContent = 'Vibración detenida';
+      }
+    }
+
+    function mostrarPropiedadesRed() {
+      const mensaje = document.getElementById('mensajeRed');
+      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+
+      if (!connection) {
+        alert('La API de Información de Red no está disponible en tu navegador.\n\nLimitaciones:\n- Solo navegadores como Chrome/Firefox en Android la soportan.\n- No se pueden mostrar detalles específicos del WiFi (SSID, señal, etc.) por privacidad.\n- Para bandas 2.4/5 GHz, ve a Ajustes del dispositivo.');
+        console.log('Network Information API no soportada.');
+        return;
+      }
+
+      // Recopilar propiedades disponibles
+      let info = 'Información de la conexión actual:\n\n';
+      info += `Tipo de conexión: ${connection.type || 'Desconocido'}\n`;
+      info += `Tipo efectivo (basado en velocidad): ${connection.effectiveType || 'Desconocido'}\n`;
+      info += `Velocidad de descarga estimada: ${connection.downlink ? connection.downlink + ' Mbps' : 'Desconocido'}\n`;
+      info += `Retardo round-trip (RTT): ${connection.rtt ? connection.rtt + ' ms' : 'Desconocido'}\n`;
+      info += `Tipo de ahorro de datos: ${connection.saveData ? 'Activado' : 'Desactivado'}\n`;
+
+      // Detectar si es WiFi (si type es 'wifi')
+      if (connection.type === 'wifi') {
+        info += '\n¡Estás conectado vía WiFi! (No se puede obtener SSID o banda específica desde web).';
+      } else {
+        info += '\nNo estás conectado vía WiFi actualmente.';
+      }
+
+      info += '\n\nNota: Para seleccionar 2.4 GHz o 5 GHz, usa los ajustes del teléfono (Ajustes > WiFi > Avanzado).';
+
+      alert(info);
+      console.log('Propiedades de red:', connection);
+
+      // Actualizar mensaje en página
+      mensaje.textContent = 'Info mostrada en alerta. Revisa la consola para detalles.';
+    }
+  </script>
+</body>
+</html>
