@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Activar/Detener Vibración, Propiedades de Red y Casting</title>
+  <title>Vibración, Red y Casting en Android</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <style>
     body {
@@ -11,40 +11,52 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
       margin: 0;
+      padding: 20px;
       font-family: Arial, sans-serif;
       background-color: #000000;
       gap: 20px;
-      padding: 10px;
       box-sizing: border-box;
     }
     button {
-      padding: 15px 30px;
-      font-size: 18px;
+      padding: 12px 24px;
+      font-size: 16px;
       background-color: #007bff;
       color: white;
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      width: 100%;
+      max-width: 300px;
     }
     button:hover {
       background-color: #0056b3;
     }
     p {
-      margin-top: 10px;
+      margin: 10px 0 0;
       color: #333;
       text-align: center;
+      font-size: 14px;
+      max-width: 300px;
     }
     .seccion {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 10px;
+      width: 100%;
+      max-width: 300px;
     }
     h2 {
       margin: 0;
       color: #007bff;
+      font-size: 18px;
+    }
+    video {
+      max-width: 100%;
+      max-height: 200px;
+      display: none; /* Oculta el preview por defecto */
     }
   </style>
 </head>
@@ -58,40 +70,40 @@
   <div class="seccion">
     <h2>Propiedades de Red</h2>
     <button onclick="mostrarPropiedadesRed()">Mostrar Propiedades de Red</button>
-    <p id="mensajeRed">Presiona el botón para ver info de la conexión (solo info general disponible)</p>
+    <p id="mensajeRed">Presiona para ver info de la conexión</p>
   </div>
 
   <div class="seccion">
-    <h2>Casting a Pantalla/TV</h2>
+    <h2>Cast a Pantalla/TV</h2>
     <button id="botonCasting" onclick="iniciarCasting()">Iniciar Casting</button>
-    <p id="mensajeCasting">Presiona el botón para compartir pantalla a TV o dispositivo en la misma red WiFi</p>
+    <p id="mensajeCasting">Presiona para capturar pantalla y transmitir a TV</p>
   </div>
 
   <script>
     let vibrando = false;
     let intervaloVibracion = null;
+    let videoElement = null;
 
     function toggleVibracion() {
       const boton = document.getElementById('botonVibrar');
       const mensaje = document.getElementById('mensajeVibracion');
 
       if (!('vibrate' in navigator)) {
-        mensaje.textContent = 'Tu dispositivo no soporta la vibración.';
+        mensaje.textContent = 'Tu dispositivo no soporta vibración.';
+        alert('Tu dispositivo Android no soporta la API de vibración.');
         return;
       }
 
       if (!vibrando) {
-        // Iniciar vibración continua (repite un patrón de 200ms vibración, 100ms pausa)
         intervaloVibracion = setInterval(() => {
           navigator.vibrate(200);
-        }, 300); // Repite cada 300ms (200ms vibración + 100ms pausa)
+        }, 300);
         vibrando = true;
         boton.textContent = 'Detener Vibración';
         mensaje.textContent = 'Vibración activada';
       } else {
-        // Detener vibración
         clearInterval(intervaloVibracion);
-        navigator.vibrate(0); // Detiene cualquier vibración activa
+        navigator.vibrate(0);
         vibrando = false;
         boton.textContent = 'Iniciar Vibración';
         mensaje.textContent = 'Vibración detenida';
@@ -103,74 +115,68 @@
       const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
 
       if (!connection) {
-        alert('La API de Información de Red no está disponible en tu navegador.\n\nLimitaciones:\n- Solo navegadores como Chrome/Firefox en Android la soportan.\n- No se pueden mostrar detalles específicos del WiFi (SSID, señal, etc.) por privacidad.\n- Para bandas 2.4/5 GHz, ve a Ajustes del dispositivo.');
+        alert('La API de Información de Red no está disponible.\n\nUsa Chrome en Android para mejor soporte.\nNo se pueden mostrar detalles de WiFi (SSID, señal, etc.) desde web.\nPara bandas 2.4/5 GHz, revisa Ajustes > WiFi.');
         console.log('Network Information API no soportada.');
+        mensaje.textContent = 'API de red no disponible. Usa Chrome.';
         return;
       }
 
-      // Recopilar propiedades disponibles
-      let info = 'Información de la conexión actual:\n\n';
+      let info = 'Información de la conexión:\n\n';
       info += `Tipo de conexión: ${connection.type || 'Desconocido'}\n`;
-      info += `Tipo efectivo (basado en velocidad): ${connection.effectiveType || 'Desconocido'}\n`;
-      info += `Velocidad de descarga estimada: ${connection.downlink ? connection.downlink + ' Mbps' : 'Desconocido'}\n`;
-      info += `Retardo round-trip (RTT): ${connection.rtt ? connection.rtt + ' ms' : 'Desconocido'}\n`;
-      info += `Tipo de ahorro de datos: ${connection.saveData ? 'Activado' : 'Desactivado'}\n`;
+      info += `Tipo efectivo: ${connection.effectiveType || 'Desconocido'}\n`;
+      info += `Velocidad estimada: ${connection.downlink ? connection.downlink + ' Mbps' : 'Desconocido'}\n`;
+      info += `Retardo (RTT): ${connection.rtt ? connection.rtt + ' ms' : 'Desconocido'}\n`;
+      info += `Ahorro de datos: ${connection.saveData ? 'Activado' : 'Desactivado'}\n`;
 
-      // Detectar si es WiFi (si type es 'wifi')
       if (connection.type === 'wifi') {
-        info += '\n¡Estás conectado vía WiFi! (No se puede obtener SSID o banda específica desde web).';
+        info += '\nConectado a WiFi (detalles como SSID no disponibles en web).';
       } else {
-        info += '\nNo estás conectado vía WiFi actualmente.';
+        info += '\nNo estás en WiFi. Conéctate para casting.';
       }
-
-      info += '\n\nNota: Para seleccionar 2.4 GHz o 5 GHz, usa los ajustes del teléfono (Ajustes > WiFi > Avanzado).';
 
       alert(info);
       console.log('Propiedades de red:', connection);
-
-      // Actualizar mensaje en página
-      mensaje.textContent = 'Info mostrada en alerta. Revisa la consola para detalles.';
+      mensaje.textContent = 'Info mostrada en alerta.';
     }
 
     function iniciarCasting() {
       const boton = document.getElementById('botonCasting');
       const mensaje = document.getElementById('mensajeCasting');
 
-      // Verificar si el navegador soporta Screen Capture API
+      // Verificar si estamos en Chrome para Android
       if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-        mensaje.textContent = 'Tu navegador no soporta compartir pantalla. Usa Chrome en Android/PC o Edge.';
-        alert('Limitaciones:\n- Esta función requiere Chrome (versión 72+) o Edge en Android/PC.\n- En móviles, asegúrate de que el dispositivo y TV estén en la misma red WiFi.\n- Para casting nativo, usa la app de tu dispositivo (ej: Smart View en Samsung).');
+        mensaje.textContent = 'Tu navegador no soporta casting. Usa Chrome en Android.';
+        alert('Usa Chrome en Android para casting.\n\nSigue estos pasos:\n1. Asegúrate de que tu TV y teléfono estén en la misma red WiFi.\n2. En Chrome, ve a Menú (3 puntos) > Transmitir > Selecciona tu TV.');
         return;
       }
 
-      // Solicitar permiso para capturar pantalla
+      // Solicitar captura de pantalla
       navigator.mediaDevices.getDisplayMedia({ video: true })
         .then(stream => {
-          // Aquí tendrías que integrar con Presentation API o mediaStream para casting
-          // Por simplicidad, mostramos el stream en un elemento video local y alertamos sobre pasos manuales
-          const video = document.createElement('video');
-          video.srcObject = stream;
-          video.play();
-          document.body.appendChild(video); // Muestra preview local (puedes remover si no quieres)
-
-          mensaje.textContent = 'Pantalla capturada. Ahora ve a Chrome > Menú > Cast... para transmitir a TV.';
-          alert('¡Pantalla capturada!\n\nPasos para transmitir:\n1. En Chrome, abre el menú (3 puntos) > "Transmitir".\n2. Selecciona tu TV o dispositivo en la misma red WiFi.\n3. Elige "Transmitir pestaña" o "Transmitir escritorio".\n\nNota: Esta web captura la pantalla, pero el casting se maneja en el navegador.');
-          
-          // Opcional: Intentar usar Presentation API para mirroring automático (experimental)
-          if ('PresentationRequest' in window) {
-            const request = new PresentationRequest('https://www.youtube.com'); // Ejemplo: transmite una URL
-            request.start()
-              .then(avail => {
-                console.log('Presentación iniciada en:', avail);
-              })
-              .catch(err => {
-                console.log('Error en Presentation API:', err);
-              });
+          // Crear elemento video para debug (opcional, lo ocultamos)
+          if (!videoElement) {
+            videoElement = document.createElement('video');
+            videoElement.srcObject = stream;
+            videoElement.play();
+            document.body.appendChild(videoElement);
           }
+
+          mensaje.textContent = 'Pantalla capturada. Usa Chrome para transmitir.';
+          alert('¡Pantalla capturada!\n\nPasos para transmitir a TV:\n1. En Chrome, toca Menú (3 puntos) > Transmitir.\n2. Selecciona tu TV o dispositivo Chromecast.\n3. Elige "Transmitir pestaña" o "Transmitir pantalla".\n\nAsegúrate de que tu TV esté en la misma red WiFi.\nPara detener, usa el menú de Chrome.');
+
+          // Monitorear si el usuario detiene la captura
+          stream.getVideoTracks()[0].onended = () => {
+            if (videoElement) {
+              videoElement.remove();
+              videoElement = null;
+            }
+            mensaje.textContent = 'Casting detenido. Presiona para iniciar de nuevo.';
+          };
         })
         .catch(err => {
           console.error('Error al capturar pantalla:', err);
           mensaje.textContent = 'Error al capturar pantalla. Verifica permisos.';
+          alert('Error al capturar pantalla. Asegúrate de permitir la captura y usa Chrome en Android.');
         });
     }
   </script>
