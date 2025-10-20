@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Activar/Detener Vibración y Propiedades de Red</title>
+  <title>Activar/Detener Vibración, Propiedades de Red y Casting</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
   <style>
     body {
       display: flex;
@@ -15,6 +16,8 @@
       font-family: Arial, sans-serif;
       background-color: #000000;
       gap: 20px;
+      padding: 10px;
+      box-sizing: border-box;
     }
     button {
       padding: 15px 30px;
@@ -39,6 +42,10 @@
       align-items: center;
       gap: 10px;
     }
+    h2 {
+      margin: 0;
+      color: #007bff;
+    }
   </style>
 </head>
 <body>
@@ -52,6 +59,12 @@
     <h2>Propiedades de Red</h2>
     <button onclick="mostrarPropiedadesRed()">Mostrar Propiedades de Red</button>
     <p id="mensajeRed">Presiona el botón para ver info de la conexión (solo info general disponible)</p>
+  </div>
+
+  <div class="seccion">
+    <h2>Casting a Pantalla/TV</h2>
+    <button id="botonCasting" onclick="iniciarCasting()">Iniciar Casting</button>
+    <p id="mensajeCasting">Presiona el botón para compartir pantalla a TV o dispositivo en la misma red WiFi</p>
   </div>
 
   <script>
@@ -117,6 +130,48 @@
 
       // Actualizar mensaje en página
       mensaje.textContent = 'Info mostrada en alerta. Revisa la consola para detalles.';
+    }
+
+    function iniciarCasting() {
+      const boton = document.getElementById('botonCasting');
+      const mensaje = document.getElementById('mensajeCasting');
+
+      // Verificar si el navegador soporta Screen Capture API
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        mensaje.textContent = 'Tu navegador no soporta compartir pantalla. Usa Chrome en Android/PC o Edge.';
+        alert('Limitaciones:\n- Esta función requiere Chrome (versión 72+) o Edge en Android/PC.\n- En móviles, asegúrate de que el dispositivo y TV estén en la misma red WiFi.\n- Para casting nativo, usa la app de tu dispositivo (ej: Smart View en Samsung).');
+        return;
+      }
+
+      // Solicitar permiso para capturar pantalla
+      navigator.mediaDevices.getDisplayMedia({ video: true })
+        .then(stream => {
+          // Aquí tendrías que integrar con Presentation API o mediaStream para casting
+          // Por simplicidad, mostramos el stream en un elemento video local y alertamos sobre pasos manuales
+          const video = document.createElement('video');
+          video.srcObject = stream;
+          video.play();
+          document.body.appendChild(video); // Muestra preview local (puedes remover si no quieres)
+
+          mensaje.textContent = 'Pantalla capturada. Ahora ve a Chrome > Menú > Cast... para transmitir a TV.';
+          alert('¡Pantalla capturada!\n\nPasos para transmitir:\n1. En Chrome, abre el menú (3 puntos) > "Transmitir".\n2. Selecciona tu TV o dispositivo en la misma red WiFi.\n3. Elige "Transmitir pestaña" o "Transmitir escritorio".\n\nNota: Esta web captura la pantalla, pero el casting se maneja en el navegador.');
+          
+          // Opcional: Intentar usar Presentation API para mirroring automático (experimental)
+          if ('PresentationRequest' in window) {
+            const request = new PresentationRequest('https://www.youtube.com'); // Ejemplo: transmite una URL
+            request.start()
+              .then(avail => {
+                console.log('Presentación iniciada en:', avail);
+              })
+              .catch(err => {
+                console.log('Error en Presentation API:', err);
+              });
+          }
+        })
+        .catch(err => {
+          console.error('Error al capturar pantalla:', err);
+          mensaje.textContent = 'Error al capturar pantalla. Verifica permisos.';
+        });
     }
   </script>
 </body>
