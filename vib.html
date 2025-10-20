@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vibración, Red y Casting en Android</title>
+  <title>Vibración, Red y Casting</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <style>
     body {
@@ -15,15 +15,16 @@
       margin: 0;
       padding: 20px;
       font-family: Arial, sans-serif;
-      background-color: #000000;
+      background-color: #000;
+      color: #fff;
       gap: 15px;
       box-sizing: border-box;
     }
     button {
       padding: 10px 20px;
       font-size: 16px;
-      background-color: #007bff;
-      color: white;
+      background-color: #1e90ff;
+      color: #fff;
       border: none;
       border-radius: 5px;
       cursor: pointer;
@@ -31,11 +32,11 @@
       max-width: 280px;
     }
     button:hover {
-      background-color: #0056b3;
+      background-color: #4682b4;
     }
     p {
       margin: 5px 0 0;
-      color: #333;
+      color: #ccc;
       text-align: center;
       font-size: 13px;
       max-width: 280px;
@@ -50,7 +51,7 @@
     }
     h2 {
       margin: 0;
-      color: #007bff;
+      color: #1e90ff;
       font-size: 16px;
     }
     video {
@@ -64,19 +65,19 @@
   <div class="seccion">
     <h2>Vibración</h2>
     <button id="botonVibrar" onclick="toggleVibracion()">Iniciar Vibración</button>
-    <p id="mensajeVibracion">Presiona para iniciar la vibración</p>
+    <p id="mensajeVibracion">Presiona para iniciar</p>
   </div>
 
   <div class="seccion">
     <h2>Propiedades de Red</h2>
     <button onclick="mostrarPropiedadesRed()">Mostrar Propiedades</button>
-    <p id="mensajeRed">Presiona para ver info de red</p>
+    <p id="mensajeRed">Presiona para ver red</p>
   </div>
 
   <div class="seccion">
     <h2>Cast a Pantalla/TV</h2>
     <button id="botonCasting" onclick="iniciarCasting()">Iniciar Casting</button>
-    <p id="mensajeCasting">Presiona para transmitir pantalla</p>
+    <p id="mensajeCasting">Presiona para transmitir</p>
   </div>
 
   <script>
@@ -84,26 +85,23 @@
     let intervaloVibracion = null;
     let videoElement = null;
 
-    // Función para depuración en consola y alertas
-    function debug(mensaje) {
-      console.log(mensaje);
-      alert(mensaje);
-    }
+    const debug = (msg) => {
+      console.log(msg);
+      alert(msg);
+    };
 
-    function toggleVibracion() {
+    const toggleVibracion = () => {
       const boton = document.getElementById('botonVibrar');
       const mensaje = document.getElementById('mensajeVibracion');
 
-      if (!('vibrate' in navigator)) {
+      if (!navigator.vibrate) {
         mensaje.textContent = 'Vibración no soportada';
-        debug('Error: Tu dispositivo o navegador no soporta la API de vibración. Usa Chrome en Android.');
+        debug('Error: Vibración no soportada. Usa Chrome en Android.');
         return;
       }
 
       if (!vibrando) {
-        intervaloVibracion = setInterval(() => {
-          navigator.vibrate(200);
-        }, 300);
+        intervaloVibracion = setInterval(() => navigator.vibrate(200), 300);
         vibrando = true;
         boton.textContent = 'Detener Vibración';
         mensaje.textContent = 'Vibración activada';
@@ -116,73 +114,64 @@
         mensaje.textContent = 'Vibración detenida';
         debug('Vibración detenida');
       }
-    }
+    };
 
-    function mostrarPropiedadesRed() {
+    const mostrarPropiedadesRed = () => {
       const mensaje = document.getElementById('mensajeRed');
-      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
 
-      if (!connection) {
+      if (!conn) {
         mensaje.textContent = 'Red no soportada';
-        debug('Error: La API de red no está disponible. Usa Chrome en Android.');
+        debug('Error: API de red no disponible. Usa Chrome en Android.');
         return;
       }
 
-      let info = 'Información de red:\n';
-      info += `Tipo: ${connection.type || 'Desconocido'}\n`;
-      info += `Velocidad: ${connection.downlink ? connection.downlink + ' Mbps' : 'Desconocido'}\n`;
-      info += `Retardo: ${connection.rtt ? connection.rtt + ' ms' : 'Desconocido'}\n`;
-      info += `Ahorro de datos: ${connection.saveData ? 'Activado' : 'Desactivado'}\n`;
+      const info = [
+        `Tipo: ${conn.type || 'Desconocido'}`,
+        `Velocidad: ${conn.downlink ? conn.downlink + ' Mbps' : 'Desconocido'}`,
+        `Retardo: ${conn.rtt ? conn.rtt + ' ms' : 'Desconocido'}`,
+        `Ahorro de datos: ${conn.saveData ? 'ON' : 'OFF'}`,
+        conn.type === 'wifi' ? 'Conectado a WiFi' : 'No estás en WiFi. Conéctate para casting.'
+      ].join('\n');
 
-      if (connection.type === 'wifi') {
-        info += 'Conectado a WiFi';
-      } else {
-        info += 'No estás en WiFi. Conéctate para casting.';
-      }
+      debug('Info de red:\n' + info);
+      mensaje.textContent = 'Info en alerta';
+    };
 
-      debug(info);
-      mensaje.textContent = 'Info mostrada en alerta';
-    }
-
-    function iniciarCasting() {
+    const iniciarCasting = async () => {
       const mensaje = document.getElementById('mensajeCasting');
 
-      // Verificar Chrome y API
       if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
         mensaje.textContent = 'Casting no soportado';
-        debug('Error: Usa Chrome en Android (versión 72+). Asegúrate de estar en una red WiFi.');
+        debug('Error: Usa Chrome 72+ en Android. Verifica permisos.');
         return;
       }
 
-      // Solicitar captura de pantalla
-      navigator.mediaDevices.getDisplayMedia({ video: true })
-        .then(stream => {
-          // Crear video para debug (oculto)
-          if (!videoElement) {
-            videoElement = document.createElement('video');
-            videoElement.srcObject = stream;
-            videoElement.play();
-            document.body.appendChild(videoElement);
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        if (!videoElement) {
+          videoElement = document.createElement('video');
+          videoElement.srcObject = stream;
+          videoElement.play();
+          document.body.appendChild(videoElement);
+        }
+
+        mensaje.textContent = 'Pantalla capturada. Usa Chrome para transmitir';
+        debug('¡Pantalla capturada!\nPasos:\n1. Chrome > Menú (3 puntos) > Transmitir.\n2. Selecciona tu TV/Chromecast.\n3. Elige "Transmitir pantalla".\nAsegúrate de estar en la misma WiFi.');
+
+        stream.getVideoTracks()[0].onended = () => {
+          if (videoElement) {
+            videoElement.remove();
+            videoElement = null;
           }
-
-          mensaje.textContent = 'Pantalla capturada. Usa Chrome para transmitir';
-          debug('¡Pantalla capturada!\nPasos:\n1. En Chrome, toca Menú (3 puntos) > Transmitir.\n2. Selecciona tu TV/Chromecast.\n3. Elige "Transmitir pantalla".\nAsegúrate de estar en la misma WiFi.');
-
-          // Detectar fin de captura
-          stream.getVideoTracks()[0].onended = () => {
-            if (videoElement) {
-              videoElement.remove();
-              videoElement = null;
-            }
-            mensaje.textContent = 'Casting detenido';
-            debug('Captura de pantalla detenida');
-          };
-        })
-        .catch(err => {
-          mensaje.textContent = 'Error en casting';
-          debug('Error al capturar pantalla: ' + err.message + '\nAsegúrate de permitir la captura.');
-        });
-    }
+          mensaje.textContent = 'Casting detenido';
+          debug('Captura detenida');
+        };
+      } catch (err) {
+        mensaje.textContent = 'Error en casting';
+        debug('Error al capturar pantalla: ' + err.message + '\nPermite captura en Chrome.');
+      }
+    };
   </script>
 </body>
 </html>
