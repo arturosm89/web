@@ -1,0 +1,653 @@
+<!-- 15022026_1939 -->
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Guitarra - Acordes + Audio (Criolla/Acústica/Eléctrica)</title>
+  <link rel="icon" type="image/x-icon" href="https://arturosm89.github.io/web/favicon.ico">
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#121a2b;
+      --muted:#9fb0d0;
+      --text:#e9f0ff;
+      --accent:#ff8a00;
+      --line:#22304d;
+      --note:#2dd4bf;
+      --note2:#60a5fa;
+      --noteRoot:#f97316;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius:16px;
+    }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(900px 600px at 10% 10%, rgba(255,138,0,.15), transparent 60%),
+                  radial-gradient(900px 600px at 90% 10%, rgba(45,212,191,.12), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      padding:24px;
+    }
+    .wrap{max-width:1100px;margin:0 auto;}
+    h1{margin:0 0 10px;font-size:22px;letter-spacing:.2px}
+    .sub{color:var(--muted);margin:0 0 18px}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border:1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:16px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:16px;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr;}
+    }
+
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:end;
+    }
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+    select, button, input[type="range"]{
+      background: rgba(10, 16, 30, .6);
+      color: var(--text);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius: 12px;
+      padding:10px 12px;
+      outline:none;
+    }
+    select{min-width:170px}
+    button{
+      cursor:pointer;
+      font-weight:600;
+      border:1px solid rgba(255,255,255,.14);
+      transition: transform .05s ease, background .15s ease;
+      background: linear-gradient(180deg, rgba(255,138,0,.22), rgba(255,138,0,.08));
+    }
+    button:active{transform: translateY(1px)}
+    button.secondary{
+      background: rgba(255,255,255,.06);
+    }
+    button[disabled]{
+      opacity:.6;
+      cursor:not-allowed;
+    }
+    .pill{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      font-size:12px;
+    }
+
+    /* Fretboard */
+    .fretboard{
+      overflow:auto;
+      border-radius: var(--radius);
+      border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,0,0,.18);
+    }
+    .fb-inner{
+      min-width: 980px;
+      padding:14px;
+    }
+    .strings{
+      display:grid;
+      grid-template-rows: repeat(6, 44px);
+      gap:10px;
+    }
+    .string{
+      position:relative;
+      display:grid;
+      grid-template-columns: 56px repeat(13, 1fr); /* 0..12 */
+      gap:6px;
+      align-items:center;
+    }
+    .string:before{
+      content:"";
+      position:absolute;
+      left:56px; right:0;
+      height:2px;
+      background: linear-gradient(90deg, rgba(255,255,255,.12), rgba(255,255,255,.05));
+      top:50%;
+      transform: translateY(-50%);
+      pointer-events:none;
+    }
+    .slabel{
+      font-size:12px;
+      color:var(--muted);
+      text-align:right;
+      padding-right:8px;
+    }
+    .fret{
+      position:relative;
+      height:44px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-left: 1px solid rgba(255,255,255,.06);
+    }
+    .cell{
+      width:34px;height:34px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+      color: rgba(255,255,255,.55);
+      user-select:none;
+      cursor:pointer;
+      transition: transform .05s ease, background .12s ease, border-color .12s ease;
+    }
+    .cell:hover{transform: scale(1.04)}
+    .cell.on{
+      color:#071019;
+      border-color: rgba(0,0,0,.0);
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.55), rgba(255,255,255,.2));
+      box-shadow: 0 8px 18px rgba(0,0,0,.35);
+    }
+    .cell.on.note{ background: radial-gradient(circle at 30% 30%, rgba(45,212,191,.95), rgba(45,212,191,.35)); }
+    .cell.on.note2{ background: radial-gradient(circle at 30% 30%, rgba(96,165,250,.95), rgba(96,165,250,.35)); }
+    .cell.on.root{ background: radial-gradient(circle at 30% 30%, rgba(249,115,22,.95), rgba(249,115,22,.35)); }
+
+    .legend{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+    .dot{
+      width:12px;height:12px;border-radius:999px;display:inline-block;margin-right:8px;
+      vertical-align:middle;
+    }
+    .dot.root{background: var(--noteRoot)}
+    .dot.in{background: var(--note)}
+    .dot.out{background: rgba(255,255,255,.25)}
+    .side h2{
+      margin:0 0 10px;font-size:16px
+    }
+    .box{
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius);
+      padding:12px;
+      background: rgba(255,255,255,.03);
+      margin-bottom:12px;
+    }
+    .notes-list{
+      display:flex; gap:8px; flex-wrap:wrap;
+      margin-top:8px;
+    }
+    .tag{
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      font-size:12px;
+      color: var(--text);
+    }
+    .tag.root{border-color: rgba(249,115,22,.55)}
+    .small{color:var(--muted);font-size:12px;line-height:1.4}
+    .slider{
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    }
+    .slider input{width: 180px}
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+      color: rgba(255,255,255,.85);
+      background: rgba(0,0,0,.25);
+      border:1px solid rgba(255,255,255,.10);
+      padding:4px 7px;
+      border-radius: 8px;
+    }
+    .status{
+      font-size:12px;
+      color: var(--muted);
+      margin-top:10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Guitarra: acordes + reproducción</h1>
+    <p class="sub">Elegí raíz + tipo de acorde + instrumento (criolla / acústica / eléctrica clean) y reproducí (rasgueo o arpegio).</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="controls">
+          <div>
+            <label>Instrumento</label>
+            <select id="instrument">
+              <option value="acoustic_guitar_nylon" selected>Guitarra criolla (nylon)</option>
+              <option value="acoustic_guitar_steel">Guitarra acústica (steel)</option>
+              <option value="electric_guitar_clean">Guitarra eléctrica (clean)</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Nota raíz</label>
+            <select id="root"></select>
+          </div>
+
+          <div>
+            <label>Tipo de acorde</label>
+            <select id="quality"></select>
+          </div>
+
+          <div class="slider">
+            <div>
+              <label>Volumen</label>
+              <input id="vol" type="range" min="0" max="1" value="0.6" step="0.01">
+            </div>
+            <span class="pill"><span class="kbd">Click</span> en una nota = sonar</span>
+          </div>
+
+          <button class="secondary" id="startAudio">🔊 Iniciar audio</button>
+          <button id="playChord">▶ Tocar acorde</button>
+          <button class="secondary" id="playArp">▶ Arpegio</button>
+          <button class="secondary" id="clear">Limpiar</button>
+        </div>
+
+        <div class="status" id="status">Tip: tocá “🔊 Iniciar audio” para cargar el instrumento.</div>
+
+        <div style="height:12px"></div>
+
+        <div class="fretboard">
+          <div class="fb-inner">
+            <div class="strings" id="strings"></div>
+            <div class="legend">
+              <span class="pill"><span class="dot root"></span>Raíz</span>
+              <span class="pill"><span class="dot in"></span>Nota del acorde</span>
+              <span class="pill"><span class="dot out"></span>Otra nota</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card side">
+        <h2>Información</h2>
+
+        <div class="box">
+          <div><strong>Acorde actual:</strong> <span id="labelChord">—</span></div>
+          <div class="small" style="margin-top:8px">
+            Si el navegador bloquea audio, tocá primero “🔊 Iniciar audio” y luego reproducí.
+          </div>
+        </div>
+
+        <div class="box">
+          <div><strong>Notas del acorde</strong></div>
+          <div class="notes-list" id="notesList"></div>
+        </div>
+
+        <div class="box">
+          <div><strong>Atajos</strong></div>
+          <div class="small">
+            <div><span class="kbd">Enter</span> tocar acorde</div>
+            <div><span class="kbd">A</span> arpegio</div>
+            <div><span class="kbd">L</span> limpiar</div>
+          </div>
+        </div>
+
+        <div class="box">
+          <div><strong>Afinación</strong> (estándar)</div>
+          <div class="small">E2 A2 D3 G3 B3 E4</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SoundFont Player (samples reales) -->
+  <script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
+
+  <script>
+  (() => {
+    // ========= Música =========
+    const NOTES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+
+    const CHORDS = [
+      { id:"maj",  name:"Mayor",            intervals:[0,4,7] },
+      { id:"min",  name:"Menor",            intervals:[0,3,7] },
+      { id:"7",    name:"Dominante 7",      intervals:[0,4,7,10] },
+      { id:"maj7", name:"Maj7",             intervals:[0,4,7,11] },
+      { id:"m7",   name:"Menor 7",          intervals:[0,3,7,10] },
+      { id:"dim",  name:"Disminuido",       intervals:[0,3,6] },
+      { id:"dim7", name:"Disminuido 7",     intervals:[0,3,6,9] },
+      { id:"aug",  name:"Aumentado",        intervals:[0,4,8] },
+      { id:"sus2", name:"Suspendido 2",     intervals:[0,2,7] },
+      { id:"sus4", name:"Suspendido 4",     intervals:[0,5,7] },
+      { id:"6",    name:"6",                intervals:[0,4,7,9] },
+      { id:"m6",   name:"Menor 6",          intervals:[0,3,7,9] },
+      { id:"9",    name:"9 (sin 11/13)",    intervals:[0,4,7,10,14] },
+      { id:"m9",   name:"Menor 9",          intervals:[0,3,7,10,14] },
+    ];
+
+    // Afinación estándar (6ª a 1ª)
+    const TUNING = [
+      { name:"6ª (E)", midi: 40 }, // E2
+      { name:"5ª (A)", midi: 45 }, // A2
+      { name:"4ª (D)", midi: 50 }, // D3
+      { name:"3ª (G)", midi: 55 }, // G3
+      { name:"2ª (B)", midi: 59 }, // B3
+      { name:"1ª (E)", midi: 64 }, // E4
+    ];
+
+    const FRETS = 12; // 0..12
+
+    // ========= DOM =========
+    const rootSel = document.getElementById("root");
+    const qualSel = document.getElementById("quality");
+    const stringsEl = document.getElementById("strings");
+    const notesListEl = document.getElementById("notesList");
+    const labelChordEl = document.getElementById("labelChord");
+    const volEl = document.getElementById("vol");
+    const statusEl = document.getElementById("status");
+
+    const instrumentSel = document.getElementById("instrument");
+    const startAudioBtn = document.getElementById("startAudio");
+    const playChordBtn = document.getElementById("playChord");
+    const playArpBtn = document.getElementById("playArp");
+
+    // ========= Audio (SoundFont robusto) =========
+    let audioCtx = null;
+    let master = null;
+
+    let currentInstrument = null;
+    let loadingInstrument = false;
+
+    function setStatus(msg){
+      statusEl.textContent = msg;
+    }
+
+    function ensureAudio(){
+      if (!audioCtx){
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        master = audioCtx.createGain();
+        master.gain.value = Number(volEl.value);
+        master.connect(audioCtx.destination);
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+    }
+
+    volEl.addEventListener("input", () => {
+      if (master) master.gain.value = Number(volEl.value);
+    });
+
+    // MIDI -> "E2", "C#4"
+    function midiToNoteWithOctave(midi){
+      const name = NOTES[midi % 12];
+      const octave = Math.floor(midi / 12) - 1;
+      return `${name}${octave}`;
+    }
+
+    function getFretboardNoteNames(){
+      const set = new Set();
+      for (let s=0; s<TUNING.length; s++){
+        for (let f=0; f<=FRETS; f++){
+          set.add(midiToNoteWithOctave(TUNING[s].midi + f));
+        }
+      }
+      return Array.from(set);
+    }
+
+    async function loadInstrument(name){
+      ensureAudio();
+      loadingInstrument = true;
+      currentInstrument = null;
+
+      playChordBtn.disabled = true;
+      playArpBtn.disabled = true;
+
+      setStatus("Cargando instrumento… (primera vez puede tardar)");
+      labelChordEl.textContent = "Cargando instrumento…";
+
+      try{
+        const noteNames = getFretboardNoteNames();
+
+        currentInstrument = await Soundfont.instrument(audioCtx, name, {
+          soundfont: "MusyngKite", // mejor calidad (más pesado)
+          format: "mp3",
+          destination: master,
+          gain: 1,
+          notes: noteNames
+        });
+
+        setStatus("Listo. Instrumento cargado.");
+      } catch (err){
+        console.error(err);
+        setStatus("❌ Error cargando instrumento. Abrí F12 → Console/Network para ver el motivo.");
+      } finally {
+        loadingInstrument = false;
+        playChordBtn.disabled = false;
+        playArpBtn.disabled = false;
+        paintChord();
+      }
+    }
+
+    // Toca usando nombre con octava
+    function pluck(midi, when=0){
+      ensureAudio();
+      if (!currentInstrument || loadingInstrument) return;
+
+      const t0 = audioCtx.currentTime + when;
+      const noteName = midiToNoteWithOctave(midi);
+      currentInstrument.play(noteName, t0, { duration: 1.2, gain: 1 });
+    }
+
+    startAudioBtn.addEventListener("click", async () => {
+      ensureAudio();
+      startAudioBtn.disabled = true;
+      await loadInstrument(instrumentSel.value);
+    });
+
+    instrumentSel.addEventListener("change", () => {
+      if (!audioCtx){
+        setStatus("Tip: primero tocá “🔊 Iniciar audio”.");
+        return;
+      }
+      loadInstrument(instrumentSel.value);
+    });
+
+    // ========= Lógica =========
+    function noteIndex(noteName){ return NOTES.indexOf(noteName); }
+
+    function buildChord(rootNote, chordId){
+      const chord = CHORDS.find(c => c.id === chordId);
+      const r = noteIndex(rootNote);
+      const chordNotes = chord.intervals.map(semi => NOTES[(r + semi) % 12]);
+      return { chord, chordNotes };
+    }
+
+    function midiToNoteName(midi){
+      return NOTES[midi % 12];
+    }
+
+    function renderFretboard(){
+      stringsEl.innerHTML = "";
+      for (let s=0; s<TUNING.length; s++){
+        const row = document.createElement("div");
+        row.className = "string";
+
+        const label = document.createElement("div");
+        label.className = "slabel";
+        label.textContent = TUNING[s].name;
+        row.appendChild(label);
+
+        for (let f=0; f<=FRETS; f++){
+          const fret = document.createElement("div");
+          fret.className = "fret";
+
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          const midi = TUNING[s].midi + f;
+          const n = midiToNoteName(midi);
+          cell.textContent = n;
+
+          cell.dataset.string = String(s);
+          cell.dataset.fret = String(f);
+          cell.dataset.midi = String(midi);
+          cell.dataset.note = n;
+
+          cell.addEventListener("click", () => {
+            if (!audioCtx){
+              setStatus("Tip: tocá “🔊 Iniciar audio” para cargar el instrumento.");
+              return;
+            }
+            pluck(midi, 0);
+            cell.classList.add("on");
+            setTimeout(() => cell.classList.remove("on"), 120);
+          });
+
+          fret.appendChild(cell);
+          row.appendChild(fret);
+        }
+        stringsEl.appendChild(row);
+      }
+    }
+
+    function paintChord(){
+      const root = rootSel.value;
+      const q = qualSel.value;
+      const { chord, chordNotes } = buildChord(root, q);
+
+      labelChordEl.textContent = `${root} ${chord.name}`;
+
+      notesListEl.innerHTML = "";
+      chordNotes.forEach(n => {
+        const tag = document.createElement("span");
+        tag.className = "tag" + (n === root ? " root" : "");
+        tag.textContent = n;
+        notesListEl.appendChild(tag);
+      });
+
+      const cells = document.querySelectorAll(".cell");
+      cells.forEach(c => {
+        c.classList.remove("on","root","note","note2");
+        const n = c.dataset.note;
+        if (chordNotes.includes(n)){
+          c.classList.add("on");
+          if (n === root) c.classList.add("root");
+          else c.classList.add(chordNotes.indexOf(n) % 2 ? "note2" : "note");
+        }
+      });
+    }
+
+    function clearPaint(){
+      const cells = document.querySelectorAll(".cell");
+      cells.forEach(c => c.classList.remove("on","root","note","note2"));
+      labelChordEl.textContent = "—";
+      notesListEl.innerHTML = "";
+      setStatus("Listo.");
+    }
+
+    // Voicing simple: por cuerda el primer match (traste bajo)
+    function pickVoicing(root, q){
+      const { chordNotes } = buildChord(root, q);
+      const voicing = [];
+
+      for (let s=0; s<TUNING.length; s++){
+        let best = null;
+        for (let f=0; f<=FRETS; f++){
+          const midi = TUNING[s].midi + f;
+          const n = midiToNoteName(midi);
+          if (chordNotes.includes(n)){
+            const score = f + (f===0 ? 1.5 : 0);
+            if (!best || score < best.score){
+              best = { s, f, midi, note:n, score };
+            }
+          }
+        }
+        if (best) voicing.push(best);
+      }
+      return voicing;
+    }
+
+    function playChord(strum=true){
+      if (!audioCtx){
+        setStatus("Tip: tocá “🔊 Iniciar audio” primero.");
+        return;
+      }
+      if (loadingInstrument){
+        setStatus("Todavía cargando el instrumento…");
+        return;
+      }
+      const root = rootSel.value;
+      const q = qualSel.value;
+      const voicing = pickVoicing(root, q);
+
+      voicing.forEach((v, i) => {
+        const delay = strum ? i * 0.03 : 0;
+        pluck(v.midi, delay);
+      });
+    }
+
+    function playArpeggio(){
+      if (!audioCtx){
+        setStatus("Tip: tocá “🔊 Iniciar audio” primero.");
+        return;
+      }
+      if (loadingInstrument){
+        setStatus("Todavía cargando el instrumento…");
+        return;
+      }
+      const root = rootSel.value;
+      const q = qualSel.value;
+      const voicing = pickVoicing(root, q);
+
+      voicing.forEach((v, i) => pluck(v.midi, i * 0.14));
+    }
+
+    // ========= Init =========
+    function init(){
+      NOTES.forEach(n => {
+        const o = document.createElement("option");
+        o.value = n; o.textContent = n;
+        rootSel.appendChild(o);
+      });
+      rootSel.value = "C";
+
+      CHORDS.forEach(c => {
+        const o = document.createElement("option");
+        o.value = c.id; o.textContent = c.name;
+        qualSel.appendChild(o);
+      });
+      qualSel.value = "maj";
+
+      renderFretboard();
+      paintChord();
+
+      rootSel.addEventListener("change", paintChord);
+      qualSel.addEventListener("change", paintChord);
+
+      document.getElementById("playChord").addEventListener("click", () => playChord(true));
+      document.getElementById("playArp").addEventListener("click", playArpeggio);
+      document.getElementById("clear").addEventListener("click", clearPaint);
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") playChord(true);
+        if (e.key.toLowerCase() === "a") playArpeggio();
+        if (e.key.toLowerCase() === "l") clearPaint();
+      });
+
+      // deshabilitamos play hasta que cargue audio/instrumento
+      playChordBtn.disabled = true;
+      playArpBtn.disabled = true;
+    }
+
+    init();
+  })();
+  </script>
+</body>
+</html>
