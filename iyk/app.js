@@ -84,8 +84,13 @@ const elements = {
   currentArcanoImage: document.querySelector('#currentArcanoImage'),
   nextArcanoImage: document.querySelector('#nextArcanoImage'),
 
-  currentArcanoImageWrap: document.querySelector('#currentArcanoImage').parentElement,
-  nextArcanoImageWrap: document.querySelector('#nextArcanoImage').parentElement,
+  currentArcanoImageWrap:
+    document.querySelector('#currentArcanoImage')
+      .closest('.arcano-image-wrap'),
+
+  nextArcanoImageWrap:
+    document.querySelector('#nextArcanoImage')
+      .closest('.arcano-image-wrap'),
 
   currentArcanoLink: document.querySelector('#currentArcanoLink'),
   nextArcanoLink: document.querySelector('#nextArcanoLink'),
@@ -623,13 +628,6 @@ function fetchArcano(number) {
       const row = response?.table?.rows?.[0];
       const cells = row?.c || [];
 
-      // const arcano = {
-      //   numero: Number(cellValue(cells[0])),
-      //   nombre: String(cellValue(cells[1])).trim(),
-      //   axioma: String(cellValue(cells[5])).trim(),
-      //   fileId: String(cellValue(cells[11])).trim()
-      // };
-
       const axiomColumnIndex =
         sheetName === 'Mayores'
           ? 5  // Columna F
@@ -643,6 +641,16 @@ function fetchArcano(number) {
         ).trim(),
         fileId: String(cellValue(cells[11])).trim()
       };
+
+      console.log({
+        hoja: sheetName,
+        numero: arcano.numero,
+        nombre: arcano.nombre,
+        fileId: arcano.fileId,
+        urlImagen: arcano.fileId
+          ? `https://lh3.googleusercontent.com/d/${arcano.fileId}=w300`
+          : ''
+      });
 
 
       if (!arcano.numero || !arcano.nombre) {
@@ -810,18 +818,6 @@ async function calculateKabala(event) {
   const yearSum =
     sumDigits(birthDate.getFullYear());
 
-  // const monthNumber =
-  //   birthDate.getMonth() + 1;
-
-  // const initiaticTotal =
-  //   yearSum +
-  //   monthNumber +
-  //   reducedDay;
-
-  const reducedMonth =
-    reduceToOneDigit(
-      birthDate.getMonth() + 1
-    );
 
   const initiaticTotal =
     yearSum +
@@ -884,40 +880,29 @@ async function calculateKabala(event) {
       currentArcano.axioma || 'Sin axioma registrado.';
 
 
-    // elements.currentArcanoImage.src =
-    //   `https://lh3.googleusercontent.com/d/${currentArcano.fileId}`;
-
-    // elements.currentArcanoImage.alt =
-    //   currentArcano.nombre;
-
     if (currentArcano.fileId) {
-      elements.currentArcanoImage.src =
-        `https://lh3.googleusercontent.com/d/${currentArcano.fileId}=w300`;
-
       const currentImage =
+        `https://lh3.googleusercontent.com/d/${currentArcano.fileId}=w400`;
+
+      elements.currentArcanoLink.href =
         `https://lh3.googleusercontent.com/d/${currentArcano.fileId}`;
 
-      elements.currentArcanoLink.href = currentImage;
-
-      elements.currentArcanoImage.src =
-        currentImage + '=w300';
-
+      elements.currentArcanoImage.referrerPolicy =
+        'no-referrer';
 
       elements.currentArcanoImage.alt =
         `Arcano ${currentArcano.numero}: ${currentArcano.nombre}`;
 
-      //elements.currentArcanoImage.classList.remove('hidden');
+      elements.currentArcanoImage.src =
+        currentImage;
+
       elements.currentArcanoImageWrap.classList.remove('hidden');
     } else {
       elements.currentArcanoImage.removeAttribute('src');
-      //elements.currentArcanoImage.classList.add('hidden');
+      elements.currentArcanoLink.removeAttribute('href');
       elements.currentArcanoImageWrap.classList.add('hidden');
     }
 
-    // elements.nextArcanoText.textContent =
-    //   `Pero a partir del ${formatDate(changeDate)}, ` +
-    //   `a la persona también la empezará a regir el ` +
-    //   `Arcano ${nextArcano.numero} (${nextArcano.nombre}).`;
 
     const changeDateAlreadyPassed = today >= changeDate;
 
@@ -936,34 +921,29 @@ async function calculateKabala(event) {
 
 
 
-    // elements.nextArcanoImage.src =
-    //   `https://lh3.googleusercontent.com/d/${nextArcano.fileId}`;
-
-    // elements.nextArcanoImage.alt =
-    //   nextArcano.nombre;
-
     if (nextArcano.fileId) {
-      // elements.nextArcanoImage.src =
-      //   `https://lh3.googleusercontent.com/d/${nextArcano.fileId}=w300`;
-
       const nextImage =
+        `https://lh3.googleusercontent.com/d/${nextArcano.fileId}=w400`;
+
+      elements.nextArcanoLink.href =
         `https://lh3.googleusercontent.com/d/${nextArcano.fileId}`;
 
-      elements.nextArcanoLink.href = nextImage;
-
-      elements.nextArcanoImage.src =
-        nextImage + '=w300';
+      elements.nextArcanoImage.referrerPolicy =
+        'no-referrer';
 
       elements.nextArcanoImage.alt =
         `Arcano ${nextArcano.numero}: ${nextArcano.nombre}`;
 
-      //elements.nextArcanoImage.classList.remove('hidden');
+      elements.nextArcanoImage.src =
+        nextImage;
+
       elements.nextArcanoImageWrap.classList.remove('hidden');
     } else {
       elements.nextArcanoImage.removeAttribute('src');
-      //elements.nextArcanoImage.classList.add('hidden');
+      elements.nextArcanoLink.removeAttribute('href');
       elements.nextArcanoImageWrap.classList.add('hidden');
     }
+
 
     elements.kabalaResults.classList.remove('hidden');
   } catch (error) {
