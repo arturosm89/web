@@ -584,8 +584,11 @@ function clearKabalaError() {
  *
  * Columna A: número.
  * Columna B: nombre.
- * Columna F: axioma trascendente.
+ * Columna F: axioma trascendente en Arcanos Mayores.
+ * Columna D: axioma trascendente en Arcanos Menores.
+ * Columna L: ID de la imagen en Google Drive.
  */
+
 function fetchArcano(number) {
   return new Promise((resolve, reject) => {
     const sheetName =
@@ -620,12 +623,27 @@ function fetchArcano(number) {
       const row = response?.table?.rows?.[0];
       const cells = row?.c || [];
 
+      // const arcano = {
+      //   numero: Number(cellValue(cells[0])),
+      //   nombre: String(cellValue(cells[1])).trim(),
+      //   axioma: String(cellValue(cells[5])).trim(),
+      //   fileId: String(cellValue(cells[11])).trim()
+      // };
+
+      const axiomColumnIndex =
+        sheetName === 'Mayores'
+          ? 5  // Columna F
+          : 3; // Columna D
+
       const arcano = {
         numero: Number(cellValue(cells[0])),
         nombre: String(cellValue(cells[1])).trim(),
-        axioma: String(cellValue(cells[5])).trim(),
+        axioma: String(
+          cellValue(cells[axiomColumnIndex])
+        ).trim(),
         fileId: String(cellValue(cells[11])).trim()
       };
+
 
       if (!arcano.numero || !arcano.nombre) {
         reject(
@@ -780,24 +798,34 @@ async function calculateKabala(event) {
       innerUrgency
     );
 
-  /*
-   * KÁBALA INICIÁTICA
-   *
-   * Suma simple de los dígitos del año,
-   * más el mes sin reducir,
-   * más el día reducido.
-   *
-   * Después se divide entre 10.
-   */
+/*
+ * KÁBALA INICIÁTICA
+ *
+ * Suma de los dígitos del año,
+ * más el mes reducido,
+ * más el día reducido.
+ *
+ * Después se divide entre 10.
+ */
   const yearSum =
     sumDigits(birthDate.getFullYear());
 
-  const monthNumber =
-    birthDate.getMonth() + 1;
+  // const monthNumber =
+  //   birthDate.getMonth() + 1;
+
+  // const initiaticTotal =
+  //   yearSum +
+  //   monthNumber +
+  //   reducedDay;
+
+  const reducedMonth =
+    reduceToOneDigit(
+      birthDate.getMonth() + 1
+    );
 
   const initiaticTotal =
     yearSum +
-    monthNumber +
+    reducedMonth +
     reducedDay;
 
   const initiaticKabala =
